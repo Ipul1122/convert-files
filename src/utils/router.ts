@@ -119,10 +119,21 @@ export const TOOL_ROUTES: Record<ToolType, RouteConfig> = {
 };
 
 /**
- * Resolve tool type from given URL pathname (including aliases)
+ * Base URL configuration for GitHub Pages subpath support
+ */
+const rawBase = import.meta.env.BASE_URL || '/';
+export const BASE_PATH = rawBase === './' ? '' : rawBase.replace(/\/+$/, '');
+
+/**
+ * Resolve tool type from given URL pathname (including aliases & base path)
  */
 export function getToolFromPath(pathname: string): ToolType {
-  const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  let clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+
+  // Strip subpath base (e.g. /convert-files) if present
+  if (BASE_PATH && clean.startsWith(BASE_PATH.toLowerCase())) {
+    clean = clean.slice(BASE_PATH.length) || '/';
+  }
 
   for (const config of Object.values(TOOL_ROUTES)) {
     if (clean === config.path) {
@@ -163,11 +174,13 @@ export function navigateToTool(tool: ToolType, replace = false): void {
   const config = TOOL_ROUTES[tool];
   if (!config) return;
 
-  if (window.location.pathname !== config.path) {
+  const targetPath = (BASE_PATH || '') + config.path;
+
+  if (window.location.pathname !== targetPath) {
     if (replace) {
-      window.history.replaceState({ tool }, '', config.path);
+      window.history.replaceState({ tool }, '', targetPath);
     } else {
-      window.history.pushState({ tool }, '', config.path);
+      window.history.pushState({ tool }, '', targetPath);
     }
   }
 
@@ -178,3 +191,4 @@ export function navigateToTool(tool: ToolType, replace = false): void {
     meta.setAttribute('content', config.metaDesc);
   }
 }
+

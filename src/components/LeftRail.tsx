@@ -15,9 +15,14 @@ import {
   Files,
   History,
   X,
+  Download,
+  Monitor,
+  CheckCircle,
 } from 'lucide-react';
 import type { ToolType } from '../types';
 import { formatBytes } from '../utils/formatters';
+import { usePwaInstall } from '../hooks/usePwaInstall';
+import { InstallModal } from './InstallModal';
 
 interface LeftRailProps {
   activeTool: ToolType;
@@ -37,6 +42,8 @@ export const LeftRail: React.FC<LeftRailProps> = ({
   isOffline,
 }) => {
   const [mobileFileSheetOpen, setMobileFileSheetOpen] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const { isInstallable, isInstalled, triggerInstall } = usePwaInstall();
 
   // Office Tools
   const officeTools: Array<{ id: ToolType; label: string; icon: React.ReactNode }> = [
@@ -139,6 +146,23 @@ export const LeftRail: React.FC<LeftRailProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
+          {!isInstalled && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isInstallable) {
+                  triggerInstall();
+                } else {
+                  setShowInstallModal(true);
+                }
+              }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded bg-accent-solid text-white text-[10px] font-mono font-bold cursor-pointer shadow-xs active:scale-95"
+              title="Pasang aplikasi LocalVault"
+            >
+              <Download size={10} strokeWidth={2.5} />
+              <span>PASANG</span>
+            </button>
+          )}
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-bg border border-border-subtle text-[10px] font-mono text-text-secondary">
             <span className="w-1.5 h-1.5 rounded-full bg-status-ok shrink-0 animate-pulse" />
             <span>{isOffline ? 'AIRPLANE OK' : '100% OFFLINE'}</span>
@@ -182,6 +206,33 @@ export const LeftRail: React.FC<LeftRailProps> = ({
                 {isOffline ? 'OFFLINE • AIRPLANE OK' : '100% OFFLINE READY'}
               </span>
             </div>
+
+            {/* PWA Install Button or Desktop Standalone Status */}
+            {isInstalled ? (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-bg border border-status-ok/30 text-[10px] font-mono text-status-ok">
+                <CheckCircle size={12} className="shrink-0" />
+                <span className="truncate">MODE DESKTOP AKTIF</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isInstallable) {
+                    triggerInstall();
+                  } else {
+                    setShowInstallModal(true);
+                  }
+                }}
+                className="w-full flex items-center justify-between px-2 py-1.5 rounded bg-accent-solid/10 hover:bg-accent-solid/20 border border-accent-solid/35 text-accent-solid text-[10px] font-mono font-bold transition-all cursor-pointer shadow-xs active:scale-98"
+                title="Pasang aplikasi LocalVault ke Desktop"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Monitor size={12} strokeWidth={2} />
+                  <span>PASANG KE DESKTOP</span>
+                </div>
+                <Download size={11} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
 
           {/* Navigation Tools List */}
@@ -476,6 +527,15 @@ export const LeftRail: React.FC<LeftRailProps> = ({
           )}
         </button>
       </nav>
+
+      {/* PWA Install Modal */}
+      <InstallModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        isInstallable={isInstallable}
+        isInstalled={isInstalled}
+        onTriggerInstall={triggerInstall}
+      />
     </>
   );
 };
