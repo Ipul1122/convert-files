@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface-bg: #09090B;
+  --color-surface-panel: #121215;
+  --color-surface-elevated: #18181B;
+  --color-border-subtle: #27272A;
+  --color-border-focus: #52525B;
+  --color-text-primary: #FAFAFA;
+  --color-text-secondary: #A1A1AA;
+  --color-text-muted: #71717A;
+  --color-accent-solid: #EA580C;
+  --color-accent-hover: #C2410C;
+  --color-status-ok: #16A34A;
+  --color-status-err: #DC2626;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+:root {
+  color-scheme: dark;
+  background-color: #09090B;
+  color: #FAFAFA;
+  font-family: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #09090B;
+}
+
+/* Custom scrollbars matching industrial zinc palette */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #121215;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272A;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525B;
+}
+
+/* Ensure no accidental gradients or blur overlays */
+.no-slop {
+  background-image: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
