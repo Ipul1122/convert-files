@@ -38,6 +38,9 @@ jobs:
           GITHUB_PAGES: 'true'
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_PURCHASE_URL: ${{ secrets.VITE_PURCHASE_URL }}
         run: npm run build
 
       - name: Upload GitHub Pages artifact
