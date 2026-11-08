@@ -142,3 +142,21 @@ export interface ConversionResult {
   downloadUrl: string;
   savedToVault: boolean;
 }
+
+export interface LicenseInfo {
+  isVip: boolean;
+  code?: string;
+  activatedAt?: number;
+  deviceFingerprint?: string;
+  deviceCount?: number;
+  maxDevices?: number;
+  dailyQuotaRemaining: number;
+  dailyQuotaTotal: number;
+}
+
+export interface LicenseActivationResult {
+  success: boolean;
+  message: string;
+  deviceCount?: number;
+  maxDevices?: number;
+}
