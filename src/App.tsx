@@ -18,8 +18,18 @@ import {
   splitPdf,
   inspectPdf,
   generateFileThumbnail,
+  pdfToDocx,
+  pdfToExcel,
+  pdfToPptx,
+  pdfToTxt,
+  compressPdf,
+  applyWatermarkToPdf,
 } from './services/pdfEngine';
-import { batchConvertImages } from './services/imageEngine';
+import {
+  batchConvertImages,
+  processPasfoto,
+  applyWatermarkToImage,
+} from './services/imageEngine';
 import {
   wordToPdf,
   wordToHtml,
@@ -55,6 +65,14 @@ const DEFAULT_OPTIONS: ConversionOptions = {
   webpQuality: 0.85,
   pageRange: 'all',
   targetImageFormat: 'image/webp',
+  compressionLevel: 'medium',
+  targetMaxKB: 195,
+  pasfotoCrop: '3x4',
+  pasfotoBgColor: 'merah',
+  watermarkText: 'HANYA UNTUK VERIFIKASI DOKUMEN',
+  watermarkStyle: 'tiled',
+  watermarkColor: 'white',
+  watermarkOpacity: 0.3,
   outputTitle: '',
 };
 
@@ -325,6 +343,12 @@ export function App() {
         newTool === 'pdf-to-jpg' ||
         newTool === 'pdf-to-png' ||
         newTool === 'pdf-to-webp' ||
+        newTool === 'pdf-to-docx' ||
+        newTool === 'pdf-to-xlsx' ||
+        newTool === 'pdf-to-pptx' ||
+        newTool === 'pdf-to-txt' ||
+        newTool === 'compress-pdf' ||
+        newTool === 'pasfoto' ||
         newTool === 'split-pdf' ||
         newTool === 'word-to-pdf' ||
         newTool === 'word-to-html' ||
@@ -662,6 +686,130 @@ export function App() {
         if (!finalFilename.toLowerCase().endsWith('.pdf')) {
           finalFilename += '.pdf';
         }
+      } else if (effectiveTool === 'pdf-to-docx') {
+        const result = await pdfToDocx(files[0].file, onProgress);
+        outputBlob = result.blob;
+        pageCount = result.pageCount;
+        outputMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        if (!finalFilename.toLowerCase().endsWith('.docx')) {
+          finalFilename += '.docx';
+        }
+      } else if (effectiveTool === 'pdf-to-xlsx') {
+        const result = await pdfToExcel(files[0].file, onProgress);
+        outputBlob = result.blob;
+        pageCount = result.pageCount;
+        outputMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        if (!finalFilename.toLowerCase().endsWith('.xlsx')) {
+          finalFilename += '.xlsx';
+        }
+      } else if (effectiveTool === 'pdf-to-pptx') {
+        const result = await pdfToPptx(files[0].file, onProgress);
+        outputBlob = result.blob;
+        pageCount = result.pageCount;
+        outputMimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+        if (!finalFilename.toLowerCase().endsWith('.pptx')) {
+          finalFilename += '.pptx';
+        }
+      } else if (effectiveTool === 'pdf-to-txt') {
+        const result = await pdfToTxt(files[0].file, onProgress);
+        outputBlob = result.blob;
+        pageCount = result.pageCount;
+        outputMimeType = 'text/plain';
+        if (!finalFilename.toLowerCase().endsWith('.txt')) {
+          finalFilename += '.txt';
+        }
+      } else if (effectiveTool === 'compress-pdf') {
+        const result = await compressPdf(
+          files[0].file,
+          {
+            level: options.compressionLevel,
+            targetMaxKB: options.targetMaxKB,
+          },
+          onProgress
+        );
+        outputBlob = result.blob;
+        pageCount = result.pageCount;
+        outputMimeType = 'application/pdf';
+        if (!finalFilename.toLowerCase().endsWith('.pdf')) {
+          finalFilename += '.pdf';
+        }
+      } else if (effectiveTool === 'heic-to-img') {
+        const result = await batchConvertImages(
+          files.map(f => f.file),
+          {
+            targetFormat: options.targetImageFormat,
+            quality: options.jpgQuality,
+          },
+          onProgress
+        );
+        outputBlob = result.blob;
+        isZip = result.isZip;
+        pageCount = result.count;
+        outputMimeType = isZip ? 'application/zip' : options.targetImageFormat;
+        const targetExt =
+          options.targetImageFormat === 'image/jpeg'
+            ? '.jpg'
+            : options.targetImageFormat === 'image/webp'
+            ? '.webp'
+            : '.png';
+        const ext = isZip ? '.zip' : targetExt;
+        if (!isZip && finalFilename.toLowerCase().endsWith('.zip')) {
+          finalFilename = finalFilename.replace(/\.zip$/i, ext);
+        } else if (!finalFilename.toLowerCase().endsWith(ext)) {
+          finalFilename += ext;
+        }
+      } else if (effectiveTool === 'pasfoto') {
+        const result = await processPasfoto(
+          files[0].file,
+          {
+            cropSize: options.pasfotoCrop,
+            backgroundColor: options.pasfotoBgColor,
+            targetMaxKB: options.targetMaxKB,
+          },
+          (curr, tot, msg) => onProgress(curr, tot, msg)
+        );
+        outputBlob = result.blob;
+        outputMimeType = result.blob.type as SupportedMimeType;
+        finalFilename = result.filename;
+      } else if (effectiveTool === 'watermark') {
+        const isPdfInput =
+          files[0].file.type === 'application/pdf' ||
+          files[0].name.toLowerCase().endsWith('.pdf');
+
+        if (isPdfInput) {
+          const result = await applyWatermarkToPdf(
+            files[0].file,
+            {
+              text: options.watermarkText,
+              style: options.watermarkStyle,
+              color: options.watermarkColor,
+              opacity: options.watermarkOpacity,
+              angleDegrees: -30,
+            },
+            onProgress
+          );
+          outputBlob = result.blob;
+          pageCount = result.pageCount;
+          outputMimeType = 'application/pdf';
+          if (!finalFilename.toLowerCase().endsWith('.pdf')) {
+            finalFilename += '.pdf';
+          }
+        } else {
+          const result = await applyWatermarkToImage(
+            files[0].file,
+            {
+              text: options.watermarkText,
+              style: options.watermarkStyle,
+              color: options.watermarkColor,
+              opacity: options.watermarkOpacity,
+              angleDegrees: -30,
+            },
+            msg => onProgress(1, 1, msg)
+          );
+          outputBlob = result.blob;
+          outputMimeType = result.blob.type as SupportedMimeType;
+          finalFilename = result.filename;
+        }
       } else if (effectiveTool === 'office-media') {
         const result = await extractOfficeMedia(files[0].file, onProgress);
         outputBlob = result.blob;
@@ -764,6 +912,7 @@ export function App() {
         onMoveFile={handleMoveFile}
         errorMessage={errorMessage}
         onClearError={() => setErrorMessage(null)}
+        onError={setErrorMessage}
         conversionResult={conversionResult}
         onDismissResult={() => setConversionResult(null)}
         onViewInVault={() => handleSelectTool('vault')}

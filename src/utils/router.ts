@@ -104,6 +104,54 @@ export const TOOL_ROUTES: Record<ToolType, RouteConfig> = {
     title: 'Konversi PowerPoint ke PDF — LocalVault',
     metaDesc: 'Ekstrak slide presentasi PowerPoint (.pptx) menjadi halaman dokumen PDF.',
   },
+  'pdf-to-docx': {
+    path: '/pdf-to-docx',
+    tool: 'pdf-to-docx',
+    title: 'Konversi PDF ke Word (.docx) — LocalVault',
+    metaDesc: 'Ekstrak teks dan struktur PDF ke dokumen Microsoft Word (.docx) 100% offline.',
+  },
+  'pdf-to-xlsx': {
+    path: '/pdf-to-xlsx',
+    tool: 'pdf-to-xlsx',
+    title: 'Konversi PDF ke Excel (.xlsx) — LocalVault',
+    metaDesc: 'Ekstrak tabel dan data spreadsheet PDF ke Microsoft Excel (.xlsx) secara offline.',
+  },
+  'pdf-to-pptx': {
+    path: '/pdf-to-pptx',
+    tool: 'pdf-to-pptx',
+    title: 'Konversi PDF ke PowerPoint (.pptx) — LocalVault',
+    metaDesc: 'Ubah lembaran PDF menjadi slide presentasi Microsoft PowerPoint (.pptx) secara offline.',
+  },
+  'pdf-to-txt': {
+    path: '/pdf-to-txt',
+    tool: 'pdf-to-txt',
+    title: 'Ekstrak Teks PDF ke TXT — LocalVault',
+    metaDesc: 'Ekstrak seluruh teks dokumen PDF menjadi berkas teks UTF-8 murni secara offline.',
+  },
+  'compress-pdf': {
+    path: '/compress-pdf',
+    tool: 'compress-pdf',
+    title: 'Kompres Ukuran PDF — LocalVault',
+    metaDesc: 'Kecilkan ukuran dokumen PDF offline agar sesuai batas unggahan CPNS, email, dan instansi.',
+  },
+  'heic-to-img': {
+    path: '/heic-to-img',
+    tool: 'heic-to-img',
+    title: 'Konversi HEIC ke JPG/PNG — LocalVault',
+    metaDesc: 'Ubah foto Apple iPhone HEIC menjadi JPG atau PNG universal secara offline.',
+  },
+  'pasfoto': {
+    path: '/pasfoto',
+    tool: 'pasfoto',
+    title: 'Pasfoto Studio AI (Ganti Latar & Auto-Crop) — LocalVault',
+    metaDesc: 'Ganti latar merah/biru pasfoto via AI WebAssembly, auto-crop 2x3, 3x4, 4x6, dan kunci target KB.',
+  },
+  'watermark': {
+    path: '/watermark',
+    tool: 'watermark',
+    title: 'Watermark Pengaman KTP & Dokumen — LocalVault',
+    metaDesc: 'Beri cap teks pengaman anti-penyalahgunaan pinjol dan penipuan pada scan KTP atau PDF.',
+  },
   'office-media': {
     path: '/office-media',
     tool: 'office-media',
@@ -153,6 +201,12 @@ export function getToolFromPath(pathname: string): ToolType {
   }
   if (clean === '/pdf-to-image' || clean === '/pdf-images') {
     return 'pdf-to-jpg';
+  }
+  if (clean === '/pdf-to-excel' || clean === '/pdf-excel' || clean === '/pdf-excel-convert') {
+    return 'pdf-to-xlsx';
+  }
+  if (clean === '/pdf-to-ppt' || clean === '/pdf-ppt' || clean === '/pdf-powerpoint') {
+    return 'pdf-to-pptx';
   }
   if (clean === '/pdf-merge' || clean === '/gabung-pdf') {
     return 'merge-pdf';

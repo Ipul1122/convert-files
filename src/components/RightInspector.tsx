@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sliders, X, FileText, FileSpreadsheet, Presentation, Archive } from 'lucide-react';
+import { Sliders, X, FileText, FileSpreadsheet, Presentation, Archive, Sparkles, ShieldCheck } from 'lucide-react';
 import type {
   ToolType,
   PageSize,
@@ -11,6 +11,7 @@ import type {
   SourceFile,
 } from '../types';
 import { parsePageRange } from '../utils/formatters';
+import { SupportedFormatsBadge } from './SupportedFormatsBadge';
 
 interface RightInspectorProps {
   toolType: ToolType;
@@ -45,6 +46,14 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
   const isWebpToImg = toolType === 'webp-to-img';
   const isMerge = toolType === 'merge-pdf';
   const isSplit = toolType === 'split-pdf';
+  const isPdfToDocx = toolType === 'pdf-to-docx';
+  const isPdfToXlsx = toolType === 'pdf-to-xlsx';
+  const isPdfToPptx = toolType === 'pdf-to-pptx';
+  const isPdfToTxt = toolType === 'pdf-to-txt';
+  const isCompressPdf = toolType === 'compress-pdf';
+  const isHeicToImg = toolType === 'heic-to-img';
+  const isPasfoto = toolType === 'pasfoto';
+  const isWatermark = toolType === 'watermark';
   const isVault = toolType === 'vault';
 
   // Office Tools
@@ -85,6 +94,30 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
     if (toolType === 'pdf-to-jpg') ctaLabel = 'EKSPOR KE JPG';
     else if (toolType === 'pdf-to-png') ctaLabel = 'EKSPOR KE PNG';
     else ctaLabel = 'EKSPOR KE WEBP';
+  } else if (isPdfToDocx) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = 'KONVERSI PDF KE WORD';
+  } else if (isPdfToXlsx) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = 'KONVERSI PDF KE EXCEL';
+  } else if (isPdfToPptx) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = 'KONVERSI PDF KE POWERPOINT';
+  } else if (isPdfToTxt) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = 'EKSTRAK TEKS PDF';
+  } else if (isCompressPdf) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = 'KOMPRES DOKUMEN PDF';
+  } else if (isHeicToImg) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = files.length <= 1 ? 'KONVERSI FOTO HEIC' : `KONVERSI ${files.length} FOTO HEIC`;
+  } else if (isPasfoto) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = 'PROSES PASFOTO AI';
+  } else if (isWatermark) {
+    canExecute = files.length > 0 && !isProcessing;
+    ctaLabel = 'PASANG WATERMARK PENGAMAN';
   } else if (isImgToWebp) {
     canExecute = files.length > 0 && !isProcessing;
     ctaLabel = files.length === 1 ? 'KONVERSI KE WEBP' : `KONVERSI ${files.length} GAMBAR KE WEBP`;
@@ -163,6 +196,9 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
 
         {/* Scrollable Configuration Controls */}
         <div className="p-4 flex flex-col gap-4 overflow-y-auto max-h-[calc(85vh-160px)] md:max-h-[calc(100vh-220px)]">
+          {/* Tool & Supported Formats Overview */}
+          <SupportedFormatsBadge toolType={toolType} variant="inspector" />
+
           {/* Options for Image to PDF */}
           {isImageToPdf && (
             <>
@@ -552,6 +588,527 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Options for PDF to Word (.docx) */}
+          {isPdfToDocx && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-accent-solid font-semibold text-xs">
+                  <FileText size={16} />
+                  <span>PDF ke Dokumen Word (.docx)</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Mengekstrak teks, posisi baris, dan paragraf dari dokumen PDF ke dalam berkas Microsoft Word (.docx) standar yang dapat diedit langsung.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded bg-surface-bg border border-border-subtle flex flex-col gap-1.5 font-mono text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-muted">FORMAT OUTPUT:</span>
+                  <span className="text-text-primary font-bold">.DOCX (Word)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">KOMPATIBILITAS:</span>
+                  <span className="text-text-primary">MS Word, Docs, LibreOffice</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">KEAMANAN:</span>
+                  <span className="text-emerald-400 font-bold">100% OFFLINE DI RAM</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Options for PDF to Excel (.xlsx) */}
+          {isPdfToXlsx && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
+                  <FileSpreadsheet size={16} />
+                  <span>PDF ke Spreadsheet Excel (.xlsx)</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Mendeteksi baris dan kolom tabel secara otomatis, memisahkan angka dan teks, lalu menyusunnya menjadi berkas Microsoft Excel (.xlsx) siap rumus.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded bg-surface-bg border border-border-subtle flex flex-col gap-1.5 font-mono text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-muted">FORMAT OUTPUT:</span>
+                  <span className="text-text-primary font-bold">.XLSX (Excel)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">STRUKTUR:</span>
+                  <span className="text-text-primary">1 Sheet per Halaman</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">FORMULA:</span>
+                  <span className="text-emerald-400 font-bold">ANGKA TERDETEKSI</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Options for PDF to PowerPoint (.pptx) */}
+          {isPdfToPptx && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-orange-400 font-semibold text-xs">
+                  <Presentation size={16} />
+                  <span>PDF ke PowerPoint (.pptx)</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Mengubah tiap halaman PDF menjadi slide presentasi PowerPoint beresolusi tajam (144 DPI) dengan rasio layar yang disesuaikan secara otomatis.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded bg-surface-bg border border-border-subtle flex flex-col gap-1.5 font-mono text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-muted">FORMAT OUTPUT:</span>
+                  <span className="text-text-primary font-bold">.PPTX (Slide)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">RASIO LAYAR:</span>
+                  <span className="text-text-primary">Otomatis (16:9 / 4:3)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">SPEAKER NOTES:</span>
+                  <span className="text-accent-solid font-bold">TEKS TERTANAM</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Options for PDF to TXT */}
+          {isPdfToTxt && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-accent-solid font-semibold text-xs">
+                  <FileText size={16} />
+                  <span>Ekstraksi Teks PDF (.txt)</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Mengambil seluruh teks murni berurutan dari halaman PDF ke berkas teks UTF-8 murni. Sangat ideal untuk pengolahan teks, arsip data, atau prompt AI.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Options for PDF Compressor */}
+          {isCompressPdf && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-2">
+                <span className="text-xs font-semibold text-text-primary">
+                  Pengaturan Kompresi PDF
+                </span>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Kecilkan ukuran dokumen PDF agar lolos batas unggahan portal instansi atau hemat kuota.
+                </p>
+              </div>
+
+              {/* Compression Mode Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">
+                  Tingkat Kompresi
+                </label>
+                <div className="grid grid-cols-2 gap-1 bg-surface-bg p-1 rounded border border-border-subtle text-[11px] font-mono">
+                  {(
+                    [
+                      { id: 'medium', label: 'Seimbang' },
+                      { id: 'low', label: 'Kualitas Tinggi' },
+                      { id: 'high', label: 'Maksimal' },
+                      { id: 'target', label: 'Target KB' },
+                    ] as const
+                  ).map(lvl => (
+                    <button
+                      key={lvl.id}
+                      type="button"
+                      onClick={() => onOptionsChange({ compressionLevel: lvl.id })}
+                      className={`py-1.5 px-1 rounded text-center transition-colors cursor-pointer ${
+                        options.compressionLevel === lvl.id
+                          ? 'bg-accent-solid text-white font-semibold'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {lvl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Target KB Presets & Input */}
+              {options.compressionLevel === 'target' && (
+                <div className="flex flex-col gap-2 p-2.5 rounded bg-surface-bg border border-border-subtle">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-text-secondary">
+                      Batas Ukuran Maksimal
+                    </label>
+                    <span className="font-mono text-xs text-accent-solid font-bold">
+                      {options.targetMaxKB} KB
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1 text-[11px] font-mono">
+                    {[195, 290, 480, 950].map(kb => (
+                      <button
+                        key={kb}
+                        type="button"
+                        onClick={() => onOptionsChange({ targetMaxKB: kb })}
+                        className={`py-1 rounded border text-center transition-colors cursor-pointer ${
+                          options.targetMaxKB === kb
+                            ? 'bg-accent-solid text-white border-accent-solid font-bold'
+                            : 'bg-surface-panel border-border-subtle text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        {kb === 195 ? '195KB' : `${kb}KB`}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="number"
+                      min="50"
+                      max="10000"
+                      step="10"
+                      value={options.targetMaxKB}
+                      onChange={e =>
+                        onOptionsChange({
+                          targetMaxKB: Math.max(30, parseInt(e.target.value, 10) || 195),
+                        })
+                      }
+                      className="w-full px-2 py-1 rounded bg-surface-panel border border-border-subtle text-xs text-text-primary font-mono focus:outline-none focus:border-border-focus"
+                    />
+                    <span className="text-xs font-mono text-text-muted">KB</span>
+                  </div>
+                  <span className="text-[10px] text-text-muted leading-tight">
+                    *Kunci 195 KB aman untuk syarat unggah CPNS / BKN (&lt; 200 KB).
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Options for HEIC to IMG */}
+          {isHeicToImg && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-2">
+                <span className="text-xs font-semibold text-text-primary">
+                  Decoder Apple HEIC
+                </span>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Konversi foto format HEIC dari iPhone atau iPad menjadi format standar yang dapat dibuka di semua perangkat secara instan.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">
+                  Format Tujuan
+                </label>
+                <div className="grid grid-cols-3 gap-1 bg-surface-bg p-1 rounded border border-border-subtle text-xs font-mono">
+                  {(
+                    [
+                      { fmt: 'image/jpeg', label: 'JPG' },
+                      { fmt: 'image/png', label: 'PNG' },
+                      { fmt: 'image/webp', label: 'WEBP' },
+                    ] as const
+                  ).map(item => (
+                    <button
+                      key={item.fmt}
+                      type="button"
+                      onClick={() => onOptionsChange({ targetImageFormat: item.fmt })}
+                      className={`py-1.5 rounded text-center uppercase transition-colors cursor-pointer ${
+                        options.targetImageFormat === item.fmt
+                          ? 'bg-accent-solid text-white font-semibold'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {options.targetImageFormat !== 'image/png' && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-text-secondary">
+                      Kualitas Gambar
+                    </label>
+                    <span className="font-mono text-xs text-text-primary font-bold">
+                      {Math.round(options.jpgQuality * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="1.0"
+                    step="0.05"
+                    value={options.jpgQuality}
+                    onChange={e => onOptionsChange({ jpgQuality: parseFloat(e.target.value) })}
+                    className="w-full accent-accent-solid cursor-pointer"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Options for Pasfoto Studio */}
+          {isPasfoto && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-accent-solid font-semibold text-xs">
+                  <Sparkles size={16} />
+                  <span>Studio Pasfoto AI (Offline)</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Ganti latar belakang otomatis via AI ONNX/WebAssembly tanpa server dan potong ke rasio pasfoto resmi.
+                </p>
+              </div>
+
+              {/* Warna Latar Belakang */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">
+                  Warna Latar Belakang
+                </label>
+                <div className="grid grid-cols-2 gap-1.5 font-mono text-[11px]">
+                  {[
+                    { id: 'merah', label: 'Merah (Ganjil)', color: '#D32F2F', desc: 'Tahun Ganjil' },
+                    { id: 'biru', label: 'Biru (Genap)', color: '#1976D2', desc: 'Tahun Genap' },
+                    { id: 'putih', label: 'Putih Resmi', color: '#FFFFFF', desc: 'Visa / Kedutaan' },
+                    { id: 'transparan', label: 'Transparan', color: 'transparent', desc: 'PNG' },
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onOptionsChange({ pasfotoBgColor: item.id })}
+                      className={`p-2 rounded border flex items-center gap-2 text-left transition-colors cursor-pointer ${
+                        options.pasfotoBgColor === item.id
+                          ? 'bg-surface-elevated border-accent-solid text-text-primary font-bold'
+                          : 'bg-surface-bg border-border-subtle text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full border border-border-subtle shrink-0"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ukuran Pasfoto / Crop */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">
+                  Ukuran & Rasio Foto
+                </label>
+                <div className="grid grid-cols-4 gap-1 bg-surface-bg p-1 rounded border border-border-subtle text-xs font-mono">
+                  {(
+                    [
+                      { id: '3x4', label: '3x4' },
+                      { id: '4x6', label: '4x6' },
+                      { id: '2x3', label: '2x3' },
+                      { id: 'asli', label: 'Asli' },
+                    ] as const
+                  ).map(sz => (
+                    <button
+                      key={sz.id}
+                      type="button"
+                      onClick={() => onOptionsChange({ pasfotoCrop: sz.id })}
+                      className={`py-1.5 rounded text-center transition-colors cursor-pointer ${
+                        options.pasfotoCrop === sz.id
+                          ? 'bg-accent-solid text-white font-semibold'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {sz.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[10px] text-text-muted font-mono">
+                  *3x4: Standar CPNS / Ijazah. 4x6: SKCK / Paspor.
+                </span>
+              </div>
+
+              {/* Kunci Target KB Pasfoto */}
+              <div className="flex flex-col gap-2 p-2.5 rounded bg-surface-bg border border-border-subtle">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-text-secondary">
+                    Kunci Ukuran Maksimal
+                  </label>
+                  <span className="font-mono text-xs text-accent-solid font-bold">
+                    {options.targetMaxKB} KB
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1 text-[11px] font-mono">
+                  {[100, 195, 300].map(kb => (
+                    <button
+                      key={kb}
+                      type="button"
+                      onClick={() => onOptionsChange({ targetMaxKB: kb })}
+                      className={`py-1 rounded border text-center transition-colors cursor-pointer ${
+                        options.targetMaxKB === kb
+                          ? 'bg-accent-solid text-white border-accent-solid font-bold'
+                          : 'bg-surface-panel border-border-subtle text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {kb === 195 ? '195 KB (CPNS)' : `${kb} KB`}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="30"
+                  max="1000"
+                  step="5"
+                  value={options.targetMaxKB}
+                  onChange={e =>
+                    onOptionsChange({
+                      targetMaxKB: Math.max(30, parseInt(e.target.value, 10) || 195),
+                    })
+                  }
+                  className="w-full px-2 py-1 rounded bg-surface-panel border border-border-subtle text-xs text-text-primary font-mono focus:outline-none focus:border-border-focus"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Options for Watermark KTP & Dokumen */}
+          {isWatermark && (
+            <div className="flex flex-col gap-3">
+              <div className="p-3 rounded bg-surface-bg border border-border-subtle flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-accent-solid font-semibold text-xs">
+                  <ShieldCheck size={16} />
+                  <span>Watermark Pengaman KTP / Dokumen</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Beri cap teks pengaman diagonal atau berulang pada scan KTP / dokumen penting agar tidak disalahgunakan untuk pinjaman online atau penipuan.
+                </p>
+              </div>
+
+              {/* Input Teks Watermark */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">
+                  Teks Watermark
+                </label>
+                <input
+                  type="text"
+                  value={options.watermarkText}
+                  onChange={e => onOptionsChange({ watermarkText: e.target.value })}
+                  placeholder="contoh: HANYA UNTUK VERIFIKASI CASN 2026"
+                  className="px-2.5 py-1.5 rounded bg-surface-bg border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-border-focus font-mono"
+                />
+              </div>
+
+              {/* Tombol Preset Cepat */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-mono uppercase text-text-muted">Preset Pengaman:</span>
+                <div className="flex flex-col gap-1 text-[11px]">
+                  {[
+                    'HANYA UNTUK VERIFIKASI CASN 2026',
+                    'SYARAT LAMARAN KERJA',
+                    'HANYA UNTUK PEMBUKAAN REKENING',
+                    'VERIFIKASI PENDAFTARAN',
+                  ].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => onOptionsChange({ watermarkText: preset })}
+                      className="text-left px-2 py-1 rounded bg-surface-bg border border-border-subtle text-text-secondary hover:text-text-primary hover:border-accent-solid text-[10px] font-mono truncate cursor-pointer transition-colors"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pola Distribusi Watermark */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">
+                  Pola Penyebaran Cap
+                </label>
+                <div className="grid grid-cols-2 gap-1 bg-surface-bg p-1 rounded border border-border-subtle text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={() => onOptionsChange({ watermarkStyle: 'tiled' })}
+                    className={`py-1.5 rounded text-center transition-colors cursor-pointer ${
+                      options.watermarkStyle === 'tiled'
+                        ? 'bg-accent-solid text-white font-semibold'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    Berulang (Paling Aman)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onOptionsChange({ watermarkStyle: 'single' })}
+                    className={`py-1.5 rounded text-center transition-colors cursor-pointer ${
+                      options.watermarkStyle === 'single'
+                        ? 'bg-accent-solid text-white font-semibold'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    Satu di Tengah
+                  </button>
+                </div>
+              </div>
+
+              {/* Warna Cap */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">
+                  Warna Cap
+                </label>
+                <div className="grid grid-cols-3 gap-1 bg-surface-bg p-1 rounded border border-border-subtle text-xs font-mono">
+                  {(
+                    [
+                      { id: 'white', label: 'Putih' },
+                      { id: 'black', label: 'Hitam' },
+                      { id: 'red', label: 'Merah' },
+                    ] as const
+                  ).map(col => (
+                    <button
+                      key={col.id}
+                      type="button"
+                      onClick={() => onOptionsChange({ watermarkColor: col.id })}
+                      className={`py-1.5 rounded text-center transition-colors cursor-pointer ${
+                        options.watermarkColor === col.id
+                          ? 'bg-accent-solid text-white font-semibold'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {col.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Slider Opasitas */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-text-secondary">
+                    Transparansi Cap
+                  </label>
+                  <span className="font-mono text-xs text-text-primary font-bold">
+                    {Math.round(options.watermarkOpacity * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.10"
+                  max="0.70"
+                  step="0.05"
+                  value={options.watermarkOpacity}
+                  onChange={e => onOptionsChange({ watermarkOpacity: parseFloat(e.target.value) })}
+                  className="w-full accent-accent-solid cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-text-muted">
+                  <span>Samar (KTP Terbaca)</span>
+                  <span>Tegas</span>
+                </div>
+              </div>
             </div>
           )}
 

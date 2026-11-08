@@ -1,9 +1,17 @@
 export type ToolType =
   | 'smart'
+  | 'pasfoto'
+  | 'watermark'
   | 'img-to-pdf'
   | 'pdf-to-jpg'
   | 'pdf-to-png'
   | 'pdf-to-webp'
+  | 'pdf-to-docx'
+  | 'pdf-to-xlsx'
+  | 'pdf-to-pptx'
+  | 'pdf-to-txt'
+  | 'compress-pdf'
+  | 'heic-to-img'
   | 'img-to-webp'
   | 'webp-to-img'
   | 'merge-pdf'
@@ -27,7 +35,9 @@ export type SupportedMimeType =
   | 'text/html'
   | 'text/plain'
   | 'text/csv'
-  | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  | 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
 export type PageSize = 'fit' | 'a4' | 'letter';
 export type PageOrientation = 'portrait' | 'landscape';
@@ -92,6 +102,20 @@ export interface ConversionOptions {
 
   // Image & WebP transcode options
   targetImageFormat: 'image/webp' | 'image/jpeg' | 'image/png';
+
+  // Compression options (PDF & Image)
+  compressionLevel: 'low' | 'medium' | 'high' | 'target';
+  targetMaxKB: number; // e.g. 195, 200, 300, 500, 1000
+
+  // Pasfoto Studio options
+  pasfotoCrop: 'asli' | '2x3' | '3x4' | '4x6';
+  pasfotoBgColor: string; // 'merah', 'biru', 'putih', 'abu', 'transparan', or hex
+
+  // Watermark options (KTP & Dokumen)
+  watermarkText: string;
+  watermarkStyle: 'tiled' | 'single';
+  watermarkColor: 'white' | 'black' | 'red';
+  watermarkOpacity: number; // 0.1 to 1.0
 
   // Output title
   outputTitle: string;

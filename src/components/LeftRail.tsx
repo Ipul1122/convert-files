@@ -9,6 +9,7 @@ import {
   FolderSync,
   Scissors,
   ShieldCheck,
+  Sparkles,
   FileCode,
   ArrowRightLeft,
   LayoutDashboard,
@@ -18,6 +19,7 @@ import {
   Download,
   Monitor,
   CheckCircle,
+  Smartphone,
 } from 'lucide-react';
 import type { ToolType } from '../types';
 import { formatBytes } from '../utils/formatters';
@@ -45,75 +47,143 @@ export const LeftRail: React.FC<LeftRailProps> = ({
   const [showInstallModal, setShowInstallModal] = useState(false);
   const { isInstallable, isInstalled, triggerInstall } = usePwaInstall();
 
-  // Office Tools
-  const officeTools: Array<{ id: ToolType; label: string; icon: React.ReactNode }> = [
+  // 1. Fitur Spesial & Administrasi CPNS
+  const specialTools: Array<{ id: ToolType; label: string; badge: string; icon: React.ReactNode }> = [
+    {
+      id: 'pasfoto',
+      label: 'PASFOTO AI',
+      badge: 'GANTI LATAR',
+      icon: <Sparkles size={15} strokeWidth={1.5} className="text-pink-400" />,
+    },
+    {
+      id: 'watermark',
+      label: 'WATERMARK',
+      badge: 'KTP / PDF',
+      icon: <ShieldCheck size={15} strokeWidth={1.5} className="text-cyan-400" />,
+    },
+    {
+      id: 'compress-pdf',
+      label: 'KOMPRES PDF',
+      badge: '195KB',
+      icon: <Archive size={15} strokeWidth={1.5} className="text-amber-400" />,
+    },
+    {
+      id: 'heic-to-img',
+      label: 'APPLE HEIC',
+      badge: '.HEIC',
+      icon: <Smartphone size={15} strokeWidth={1.5} className="text-emerald-400" />,
+    },
+  ];
+
+  // 2. PDF ↔ Microsoft Office (Bidirectional Pairs)
+  const officeTools: Array<{ id: ToolType; label: string; badge: string; icon: React.ReactNode }> = [
+    {
+      id: 'pdf-to-docx',
+      label: 'PDF → WORD',
+      badge: '.DOCX',
+      icon: <FileText size={15} strokeWidth={1.5} className="text-blue-400" />,
+    },
     {
       id: 'word-to-pdf',
       label: 'WORD → PDF',
+      badge: '.PDF',
       icon: <FileText size={15} strokeWidth={1.5} className="text-blue-400" />,
+    },
+    {
+      id: 'pdf-to-xlsx',
+      label: 'PDF → EXCEL',
+      badge: '.XLSX',
+      icon: <FileSpreadsheet size={15} strokeWidth={1.5} className="text-emerald-400" />,
     },
     {
       id: 'excel-to-pdf',
       label: 'EXCEL → PDF',
+      badge: '.PDF',
       icon: <FileSpreadsheet size={15} strokeWidth={1.5} className="text-emerald-400" />,
+    },
+    {
+      id: 'pdf-to-pptx',
+      label: 'PDF → PPT',
+      badge: '.PPTX',
+      icon: <Presentation size={15} strokeWidth={1.5} className="text-orange-400" />,
     },
     {
       id: 'pptx-to-pdf',
       label: 'PPTX → PDF',
+      badge: '.PDF',
       icon: <Presentation size={15} strokeWidth={1.5} className="text-orange-400" />,
+    },
+    {
+      id: 'pdf-to-txt',
+      label: 'PDF → TEKS',
+      badge: '.TXT',
+      icon: <FileCode size={15} strokeWidth={1.5} className="text-text-secondary" />,
     },
     {
       id: 'office-media',
       label: 'EKSTRAK MEDIA',
+      badge: '.ZIP',
       icon: <Archive size={15} strokeWidth={1.5} className="text-purple-400" />,
     },
   ];
 
-  // PDF & Image Tools
-  const pdfTools: Array<{ id: ToolType; label: string; icon: React.ReactNode }> = [
+  // 3. Kelola Halaman PDF
+  const pdfOrganizeTools: Array<{ id: ToolType; label: string; badge: string; icon: React.ReactNode }> = [
+    {
+      id: 'merge-pdf',
+      label: 'GABUNG PDF',
+      badge: 'GABUNG',
+      icon: <FolderSync size={15} strokeWidth={1.5} className="text-amber-400" />,
+    },
+    {
+      id: 'split-pdf',
+      label: 'PISAH PDF',
+      badge: 'PISAH',
+      icon: <Scissors size={15} strokeWidth={1.5} className="text-accent-solid" />,
+    },
+  ];
+
+  // 4. Format Gambar & WebP
+  const imageTools: Array<{ id: ToolType; label: string; badge: string; icon: React.ReactNode }> = [
     {
       id: 'img-to-pdf',
-      label: 'IMG → PDF',
-      icon: <FileImage size={15} strokeWidth={1.5} />,
+      label: 'GAMBAR → PDF',
+      badge: 'GAMBAR',
+      icon: <FileImage size={15} strokeWidth={1.5} className="text-cyan-400" />,
     },
     {
       id: 'pdf-to-jpg',
       label: 'PDF → JPG',
-      icon: <FileText size={15} strokeWidth={1.5} />,
+      badge: '300DPI',
+      icon: <FileText size={15} strokeWidth={1.5} className="text-indigo-400" />,
     },
     {
       id: 'pdf-to-png',
       label: 'PDF → PNG',
-      icon: <Layers size={15} strokeWidth={1.5} />,
+      badge: 'LOSSLESS',
+      icon: <Layers size={15} strokeWidth={1.5} className="text-indigo-400" />,
     },
     {
       id: 'pdf-to-webp',
       label: 'PDF → WEBP',
-      icon: <FileCode size={15} strokeWidth={1.5} />,
-    },
-    {
-      id: 'merge-pdf',
-      label: 'MERGE PDF',
-      icon: <FolderSync size={15} strokeWidth={1.5} />,
-    },
-    {
-      id: 'split-pdf',
-      label: 'SPLIT PDF',
-      icon: <Scissors size={15} strokeWidth={1.5} />,
+      badge: 'WEBP',
+      icon: <FileCode size={15} strokeWidth={1.5} className="text-indigo-400" />,
     },
     {
       id: 'img-to-webp',
-      label: 'IMG → WEBP',
-      icon: <FileCode size={15} strokeWidth={1.5} />,
+      label: 'GAMBAR → WEBP',
+      badge: 'KOMPRES',
+      icon: <FileCode size={15} strokeWidth={1.5} className="text-rose-400" />,
     },
     {
       id: 'webp-to-img',
-      label: 'WEBP → IMG',
-      icon: <ArrowRightLeft size={15} strokeWidth={1.5} />,
+      label: 'WEBP → GAMBAR',
+      badge: 'JPG/PNG',
+      icon: <ArrowRightLeft size={15} strokeWidth={1.5} className="text-yellow-400" />,
     },
   ];
 
-  const allTools = [...officeTools, ...pdfTools];
+  const allTools = [...specialTools, ...officeTools, ...pdfOrganizeTools, ...imageTools];
   const maxBytes = maxStorageMB * 1024 * 1024;
   const storagePercent = Math.min(100, Math.round((vaultUsageBytes / maxBytes) * 100));
 
@@ -266,11 +336,46 @@ export const LeftRail: React.FC<LeftRailProps> = ({
               </span>
             </button>
 
-            {/* Dokumen Office Header */}
+            {/* Kategori 1: Fitur Spesial & CPNS */}
             <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-text-muted mt-2">
-              Dokumen Office
+              Fitur Spesial &amp; CPNS
             </div>
+            {specialTools.map(tool => {
+              const isActive = activeTool === tool.id;
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => onSelectTool(tool.id)}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-accent-solid text-white font-semibold'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={isActive ? 'text-white' : ''}>
+                      {tool.icon}
+                    </span>
+                    <span className="font-mono tracking-tight truncate">{tool.label}</span>
+                  </div>
+                  <span
+                    className={`font-mono text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                      isActive
+                        ? 'bg-black/30 text-white border-white/20'
+                        : 'bg-surface-bg text-text-muted border-border-subtle'
+                    }`}
+                  >
+                    {tool.badge}
+                  </span>
+                </button>
+              );
+            })}
 
+            {/* Kategori 2: PDF ↔ Microsoft Office */}
+            <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-text-muted mt-2">
+              PDF ↔ Office
+            </div>
             {officeTools.map(tool => {
               const isActive = activeTool === tool.id;
               return (
@@ -284,22 +389,30 @@ export const LeftRail: React.FC<LeftRailProps> = ({
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <span className={isActive ? 'text-white' : ''}>
                       {tool.icon}
                     </span>
-                    <span className="font-mono tracking-tight">{tool.label}</span>
+                    <span className="font-mono tracking-tight truncate">{tool.label}</span>
                   </div>
+                  <span
+                    className={`font-mono text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                      isActive
+                        ? 'bg-black/30 text-white border-white/20'
+                        : 'bg-surface-bg text-text-muted border-border-subtle'
+                    }`}
+                  >
+                    {tool.badge}
+                  </span>
                 </button>
               );
             })}
 
-            {/* PDF & Gambar Header */}
+            {/* Kategori 3: Kelola Halaman PDF */}
             <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-text-muted mt-2">
-              PDF &amp; Gambar
+              Kelola PDF
             </div>
-
-            {pdfTools.map(tool => {
+            {pdfOrganizeTools.map(tool => {
               const isActive = activeTool === tool.id;
               return (
                 <button
@@ -312,12 +425,57 @@ export const LeftRail: React.FC<LeftRailProps> = ({
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <span className={isActive ? 'text-white' : 'text-text-secondary'}>
                       {tool.icon}
                     </span>
-                    <span className="font-mono tracking-tight">{tool.label}</span>
+                    <span className="font-mono tracking-tight truncate">{tool.label}</span>
                   </div>
+                  <span
+                    className={`font-mono text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                      isActive
+                        ? 'bg-black/30 text-white border-white/20'
+                        : 'bg-surface-bg text-text-muted border-border-subtle'
+                    }`}
+                  >
+                    {tool.badge}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* Kategori 4: Gambar & WebP */}
+            <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-text-muted mt-2">
+              Gambar &amp; WebP
+            </div>
+            {imageTools.map(tool => {
+              const isActive = activeTool === tool.id;
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => onSelectTool(tool.id)}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-accent-solid text-white font-semibold'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={isActive ? 'text-white' : 'text-text-secondary'}>
+                      {tool.icon}
+                    </span>
+                    <span className="font-mono tracking-tight truncate">{tool.label}</span>
+                  </div>
+                  <span
+                    className={`font-mono text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                      isActive
+                        ? 'bg-black/30 text-white border-white/20'
+                        : 'bg-surface-bg text-text-muted border-border-subtle'
+                    }`}
+                  >
+                    {tool.badge}
+                  </span>
                 </button>
               );
             })}
@@ -409,9 +567,50 @@ export const LeftRail: React.FC<LeftRailProps> = ({
               </button>
             </div>
 
-            {/* Dokumen Office */}
+            {/* Fitur Spesial & CPNS */}
             <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted mt-1">
-              Dokumen Office
+              Fitur Spesial &amp; CPNS
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {specialTools.map(tool => {
+                const isActive = activeTool === tool.id;
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectTool(tool.id);
+                      setMobileFileSheetOpen(false);
+                    }}
+                    className={`flex items-center justify-between gap-1.5 p-2 rounded text-xs font-mono transition-colors text-left cursor-pointer ${
+                      isActive
+                        ? 'bg-accent-solid text-white font-bold shadow-xs'
+                        : 'bg-surface-elevated text-text-secondary hover:text-text-primary border border-border-subtle'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={isActive ? 'text-white' : ''}>
+                        {tool.icon}
+                      </span>
+                      <span className="truncate">{tool.label}</span>
+                    </div>
+                    <span
+                      className={`text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                        isActive
+                          ? 'bg-black/30 text-white border-white/20'
+                          : 'bg-surface-panel text-text-muted border-border-subtle'
+                      }`}
+                    >
+                      {tool.badge}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* PDF ↔ Microsoft Office */}
+            <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted mt-2">
+              PDF ↔ Microsoft Office
             </div>
             <div className="grid grid-cols-2 gap-2">
               {officeTools.map(tool => {
@@ -424,27 +623,38 @@ export const LeftRail: React.FC<LeftRailProps> = ({
                       onSelectTool(tool.id);
                       setMobileFileSheetOpen(false);
                     }}
-                    className={`flex items-center gap-2 p-2.5 rounded text-xs font-mono transition-colors text-left cursor-pointer ${
+                    className={`flex items-center justify-between gap-1.5 p-2 rounded text-xs font-mono transition-colors text-left cursor-pointer ${
                       isActive
                         ? 'bg-accent-solid text-white font-bold shadow-xs'
                         : 'bg-surface-elevated text-text-secondary hover:text-text-primary border border-border-subtle'
                     }`}
                   >
-                    <span className={isActive ? 'text-white' : ''}>
-                      {tool.icon}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={isActive ? 'text-white' : ''}>
+                        {tool.icon}
+                      </span>
+                      <span className="truncate">{tool.label}</span>
+                    </div>
+                    <span
+                      className={`text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                        isActive
+                          ? 'bg-black/30 text-white border-white/20'
+                          : 'bg-surface-panel text-text-muted border-border-subtle'
+                      }`}
+                    >
+                      {tool.badge}
                     </span>
-                    <span className="truncate">{tool.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* PDF & Gambar */}
+            {/* Kelola PDF */}
             <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted mt-2">
-              PDF &amp; Gambar
+              Kelola PDF
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {pdfTools.map(tool => {
+              {pdfOrganizeTools.map(tool => {
                 const isActive = activeTool === tool.id;
                 return (
                   <button
@@ -454,16 +664,68 @@ export const LeftRail: React.FC<LeftRailProps> = ({
                       onSelectTool(tool.id);
                       setMobileFileSheetOpen(false);
                     }}
-                    className={`flex items-center gap-2 p-2.5 rounded text-xs font-mono transition-colors text-left cursor-pointer ${
+                    className={`flex items-center justify-between gap-1.5 p-2 rounded text-xs font-mono transition-colors text-left cursor-pointer ${
                       isActive
                         ? 'bg-accent-solid text-white font-bold shadow-xs'
                         : 'bg-surface-elevated text-text-secondary hover:text-text-primary border border-border-subtle'
                     }`}
                   >
-                    <span className={isActive ? 'text-white' : 'text-text-secondary'}>
-                      {tool.icon}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={isActive ? 'text-white' : 'text-text-secondary'}>
+                        {tool.icon}
+                      </span>
+                      <span className="truncate">{tool.label}</span>
+                    </div>
+                    <span
+                      className={`text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                        isActive
+                          ? 'bg-black/30 text-white border-white/20'
+                          : 'bg-surface-panel text-text-muted border-border-subtle'
+                      }`}
+                    >
+                      {tool.badge}
                     </span>
-                    <span className="truncate">{tool.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Format Gambar & WebP */}
+            <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted mt-2">
+              Gambar &amp; WebP
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {imageTools.map(tool => {
+                const isActive = activeTool === tool.id;
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectTool(tool.id);
+                      setMobileFileSheetOpen(false);
+                    }}
+                    className={`flex items-center justify-between gap-1.5 p-2 rounded text-xs font-mono transition-colors text-left cursor-pointer ${
+                      isActive
+                        ? 'bg-accent-solid text-white font-bold shadow-xs'
+                        : 'bg-surface-elevated text-text-secondary hover:text-text-primary border border-border-subtle'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={isActive ? 'text-white' : 'text-text-secondary'}>
+                        {tool.icon}
+                      </span>
+                      <span className="truncate">{tool.label}</span>
+                    </div>
+                    <span
+                      className={`text-[9px] px-1 py-0.2 rounded border shrink-0 ${
+                        isActive
+                          ? 'bg-black/30 text-white border-white/20'
+                          : 'bg-surface-panel text-text-muted border-border-subtle'
+                      }`}
+                    >
+                      {tool.badge}
+                    </span>
                   </button>
                 );
               })}
