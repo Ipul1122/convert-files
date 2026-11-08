@@ -196,7 +196,341 @@ export interface PasfotoOptions {
 }
 
 /**
- * AI Pasfoto Studio: Background removal (WebAssembly/ONNX) + Smart auto-crop + Color swap + Target KB
+ * Quick probe to check if canvas corners/edges already possess true alpha transparency
+ */
+function checkHasTransparency(ctx: CanvasRenderingContext2D, w: number, h: number): boolean {
+  const points: [number, number][] = [
+    [2, 2],
+    [Math.max(0, w - 3), 2],
+    [Math.floor(w / 2), 2],
+    [2, Math.floor(h * 0.25)],
+    [Math.max(0, w - 3), Math.floor(h * 0.25)],
+  ];
+  for (const [x, y] of points) {
+    const pixel = ctx.getImageData(x, y, 1, 1).data;
+    if (pixel[3] < 128) return true;
+  }
+  return false;
+}
+
+/**
+ * High-Precision Studio Matting & Background Swap Engine
+ * 100% Client-Side, Zero Network Dependencies
+ * Automatically detects original backdrop (red, blue, white, neutral), protects skin & face,
+ * and seamlessly transforms background to target color or transparency with smooth anti-aliased edges.
+ */
+export function applySmartPortraitMatting(
+  canvas: HTMLCanvasElement,
+  targetHexColor: string | null
+): void {
+  const width = canvas.width;
+  const height = canvas.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx || width === 0 || height === 0) return;
+
+  const imgData = ctx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+
+  // 1. Parse target color components
+  let targetR = 0;
+  let targetG = 0;
+  let targetB = 0;
+  if (targetHexColor) {
+    const clean = targetHexColor.replace('#', '');
+    if (clean.length === 3) {
+      targetR = parseInt(clean[0] + clean[0], 16);
+      targetG = parseInt(clean[1] + clean[1], 16);
+      targetB = parseInt(clean[2] + clean[2], 16);
+    } else {
+      targetR = parseInt(clean.slice(0, 2), 16);
+      targetG = parseInt(clean.slice(2, 4), 16);
+      targetB = parseInt(clean.slice(4, 6), 16);
+    }
+  }
+
+  // 2. Sample outer perimeter to determine dominant background color
+  const sampleTopH = Math.max(8, Math.floor(height * 0.08));
+  const sampleSideW = Math.max(8, Math.floor(width * 0.12));
+  const sampleSideH = Math.max(16, Math.floor(height * 0.45));
+
+  // Coarse brightness check to filter out dark hair strands touching borders
+  let prelimLum = 0;
+  let prelimCount = 0;
+  for (let x = 0; x < width; x += 4) {
+    const idx = x * 4;
+    prelimLum += 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+    prelimCount++;
+  }
+  const avgBorderLum = prelimCount > 0 ? prelimLum / prelimCount : 128;
+  const isLightBackdrop = avgBorderLum > 90;
+
+  let sumR = 0;
+  let sumG = 0;
+  let sumB = 0;
+  let sampleCount = 0;
+
+  // Collect samples from top border
+  for (let y = 0; y < sampleTopH; y += 2) {
+    for (let x = 0; x < width; x += 3) {
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      if (isLightBackdrop && r + g + b < 90) continue; // Filter dark hair
+      sumR += r;
+      sumG += g;
+      sumB += b;
+      sampleCount++;
+    }
+  }
+
+  // Collect samples from upper left & right side borders
+  for (let y = sampleTopH; y < sampleSideH; y += 2) {
+    for (let x = 0; x < sampleSideW; x += 3) {
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      if (isLightBackdrop && r + g + b < 90) continue;
+      sumR += r;
+      sumG += g;
+      sumB += b;
+      sampleCount++;
+    }
+    for (let x = width - sampleSideW; x < width; x += 3) {
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      if (isLightBackdrop && r + g + b < 90) continue;
+      sumR += r;
+      sumG += g;
+      sumB += b;
+      sampleCount++;
+    }
+  }
+
+  if (sampleCount === 0) return;
+
+  const bgR = Math.round(sumR / sampleCount);
+  const bgG = Math.round(sumG / sampleCount);
+  const bgB = Math.round(sumB / sampleCount);
+
+  // Background classification
+  const isRedBg = bgR > 110 && bgR > 1.3 * bgG && bgR > 1.3 * bgB;
+  const isBlueBg = bgB > 95 && bgB > 1.15 * bgR && bgB > 1.15 * bgG;
+  const isWhiteBg =
+    bgR > 180 &&
+    bgG > 180 &&
+    bgB > 180 &&
+    Math.abs(bgR - bgG) < 30 &&
+    Math.abs(bgR - bgB) < 30;
+  const isDarkBg = bgR < 70 && bgG < 70 && bgB < 70;
+
+  // Tolerance thresholds
+  let baseTol = 48;
+  if (isRedBg) baseTol = 62;
+  else if (isBlueBg) baseTol = 58;
+  else if (isWhiteBg) baseTol = 46;
+  else if (isDarkBg) baseTol = 20; // Tight tolerance on dark backdrops to prevent eating black suits/hair
+
+  const featherSpan = isDarkBg ? 10 : 22;
+
+  // Robust human skin detection (protects face, ears, neck across ethnicities)
+  function isSkin(r: number, g: number, b: number): boolean {
+    if (r <= g || g <= b) return false;
+    if (r < 75 || g < 40 || b < 25) return false;
+    const diffRG = r - g;
+    const diffRB = r - b;
+    if (diffRG < 12 || diffRB < 25) return false;
+    if (r > 165 && g < 65 && b < 65) return false; // Red studio backdrop
+    return true;
+  }
+
+  function matchesBgSeed(pIdx: number): boolean {
+    const r = data[pIdx];
+    const g = data[pIdx + 1];
+    const b = data[pIdx + 2];
+    if (!isWhiteBg && isSkin(r, g, b)) return false;
+    const dr = r - bgR;
+    const dg = g - bgG;
+    const db = b - bgB;
+    const dist = Math.sqrt(0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db);
+    if (dist <= baseTol) return true;
+    if (isRedBg && r > 1.25 * g && r > 1.25 * b && r > 95) return true;
+    if (isBlueBg && b > 1.15 * r && b > 1.15 * g && b > 75) return true;
+    if (isWhiteBg && r > 175 && g > 175 && b > 175 && Math.abs(r - g) < 30) return true;
+    return false;
+  }
+
+  // BFS Queue & Connected Mask
+  const totalPixels = width * height;
+  const visited = new Uint8Array(totalPixels); // 0=unvisited, 1=subject, 2=bg, 3=feather
+  const mask = new Float32Array(totalPixels);  // 1.0=pure bg, 0.0=pure subject, (0..1)=feather
+  const queue = new Int32Array(totalPixels);
+  let head = 0;
+  let tail = 0;
+
+  // Seed outer perimeter: top edge and upper left/right edges
+  for (let x = 0; x < width; x++) {
+    if (matchesBgSeed(x * 4)) {
+      visited[x] = 2;
+      mask[x] = 1.0;
+      queue[tail++] = x;
+    }
+  }
+  for (let y = 1; y < sampleSideH; y++) {
+    const idxL = y * width;
+    const idxR = y * width + (width - 1);
+    if (visited[idxL] === 0 && matchesBgSeed(idxL * 4)) {
+      visited[idxL] = 2;
+      mask[idxL] = 1.0;
+      queue[tail++] = idxL;
+    }
+    if (visited[idxR] === 0 && matchesBgSeed(idxR * 4)) {
+      visited[idxR] = 2;
+      mask[idxR] = 1.0;
+      queue[tail++] = idxR;
+    }
+  }
+
+  // Flood fill propagation
+  while (head < tail) {
+    const curr = queue[head++];
+    const cx = curr % width;
+    const cy = Math.floor(curr / width);
+
+    const cr = data[curr * 4];
+    const cg = data[curr * 4 + 1];
+    const cb = data[curr * 4 + 2];
+
+    const neighbors = [
+      cx > 0 ? curr - 1 : -1,
+      cx < width - 1 ? curr + 1 : -1,
+      cy > 0 ? curr - width : -1,
+      cy < height - 1 ? curr + width : -1,
+    ];
+
+    for (let i = 0; i < 4; i++) {
+      const n = neighbors[i];
+      if (n === -1 || visited[n] !== 0) continue;
+
+      const pIdx = n * 4;
+      const nr = data[pIdx];
+      const ng = data[pIdx + 1];
+      const nb = data[pIdx + 2];
+
+      const nx = n % width;
+      const ny = Math.floor(n / width);
+
+      // Anatomical guards for portrait photos:
+      // 1. Strictly protect chest, suit lapels, tie, and clothing (lower-central torso region)
+      if (ny > height * 0.46 && nx > width * 0.16 && nx < width * 0.84) {
+        visited[n] = 1;
+        continue;
+      }
+
+      // 2. Strictly protect chin, jawline shadow, and neck
+      if (ny > height * 0.28 && ny <= height * 0.46 && nx > width * 0.30 && nx < width * 0.70) {
+        if (isDarkBg || isSkin(nr, ng, nb) || nr + ng + nb < 160) {
+          visited[n] = 1;
+          continue;
+        }
+      }
+
+      // Protect subject skin
+      if (!isWhiteBg && isSkin(nr, ng, nb)) {
+        visited[n] = 1;
+        continue;
+      }
+
+      // Perceptual distance to global background color
+      const dr = nr - bgR;
+      const dg = ng - bgG;
+      const db = nb - bgB;
+      const dist = Math.sqrt(0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db);
+
+      // Local step distance to parent pixel (adapts to subtle lighting gradients)
+      const sdr = nr - cr;
+      const sdg = ng - cg;
+      const sdb = nb - cb;
+      const stepDist = Math.sqrt(0.299 * sdr * sdr + 0.587 * sdg * sdg + 0.114 * sdb * sdb);
+
+      // Chroma matching boost
+      let isChromaMatch = false;
+      if (isRedBg && nr > 1.25 * ng && nr > 1.25 * nb && nr > 95) {
+        isChromaMatch = true;
+      } else if (isBlueBg && nb > 1.15 * nr && nb > 1.15 * ng && nb > 75) {
+        isChromaMatch = true;
+      } else if (isWhiteBg && nr > 175 && ng > 175 && nb > 175 && Math.abs(nr - ng) < 30) {
+        isChromaMatch = true;
+      }
+
+      const isCoreBg =
+        dist <= baseTol ||
+        isChromaMatch ||
+        (stepDist < 12 && dist <= baseTol * 1.35);
+
+      if (isCoreBg) {
+        visited[n] = 2;
+        mask[n] = 1.0;
+        queue[tail++] = n;
+      } else if (dist < baseTol + featherSpan) {
+        visited[n] = 3;
+        const w = (baseTol + featherSpan - dist) / featherSpan;
+        mask[n] = Math.max(0, Math.min(1, w));
+      } else {
+        visited[n] = 1; // Subject
+      }
+    }
+  }
+
+  // Decontaminate & Apply Target Background
+  for (let i = 0; i < totalPixels; i++) {
+    const w = mask[i];
+    if (w === 0) continue; // Pure foreground subject unchanged
+
+    const pIdx = i * 4;
+    if (w === 1.0) {
+      // Pure background
+      if (targetHexColor === null) {
+        data[pIdx + 3] = 0; // 100% Transparent
+      } else {
+        data[pIdx] = targetR;
+        data[pIdx + 1] = targetG;
+        data[pIdx + 2] = targetB;
+        data[pIdx + 3] = 255;
+      }
+    } else {
+      // Feather border (hair tips, silhouette edge)
+      const fgWeight = 1 - w;
+      // Decontaminate color spill from original background
+      let fgR = (data[pIdx] - w * bgR) / fgWeight;
+      let fgG = (data[pIdx + 1] - w * bgG) / fgWeight;
+      let fgB = (data[pIdx + 2] - w * bgB) / fgWeight;
+      fgR = Math.max(0, Math.min(255, fgR));
+      fgG = Math.max(0, Math.min(255, fgG));
+      fgB = Math.max(0, Math.min(255, fgB));
+
+      if (targetHexColor === null) {
+        data[pIdx] = Math.round(fgR);
+        data[pIdx + 1] = Math.round(fgG);
+        data[pIdx + 2] = Math.round(fgB);
+        data[pIdx + 3] = Math.round(fgWeight * 255);
+      } else {
+        data[pIdx] = Math.round(fgWeight * fgR + w * targetR);
+        data[pIdx + 1] = Math.round(fgWeight * fgG + w * targetG);
+        data[pIdx + 2] = Math.round(fgWeight * fgB + w * targetB);
+        data[pIdx + 3] = 255;
+      }
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+}
+
+/**
+ * AI Pasfoto Studio: Background removal (WebAssembly/ONNX) + High-Precision Studio Matting + Smart auto-crop + Color swap + Target KB
  */
 export async function processPasfoto(
   file: File,
@@ -213,13 +547,33 @@ export async function processPasfoto(
     sourceBlob = await convertHeicToUniversalBlob(file);
   }
 
-  onProgress?.(2, 4, 'Menghilangkan latar belakang via WebAssembly ONNX AI...');
-  let transparentBlob: Blob;
+  onProgress?.(2, 4, 'Menghilangkan latar belakang via AI WebAssembly...');
+  let transparentBlob: Blob = sourceBlob;
   try {
     const { removeBackground } = await import('@imgly/background-removal');
-    transparentBlob = await removeBackground(sourceBlob);
+    transparentBlob = await removeBackground(sourceBlob, {
+      model: 'isnet_quint8',
+      output: {
+        format: 'image/png',
+        quality: 0.95,
+      },
+      progress: (key: string, current: number, total: number) => {
+        if (key.startsWith('fetch')) {
+          const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+          onProgress?.(2, 4, `Mengunduh model AI (${pct}%)...`);
+        } else if (key === 'compute:decode') {
+          onProgress?.(2, 4, 'Mendekode gambar...');
+        } else if (key === 'compute:inference') {
+          onProgress?.(2, 4, 'Menjalankan AI segmentasi objek...');
+        } else if (key === 'compute:mask') {
+          onProgress?.(2, 4, 'Menyempurnakan tepi rambut & pakaian...');
+        } else {
+          onProgress?.(2, 4, 'Menghilangkan latar belakang via AI...');
+        }
+      },
+    });
   } catch (err) {
-    console.warn('AI Background Removal error, fallback to source:', err);
+    console.warn('AI Background Removal notice, applying high-precision studio matting:', err);
     transparentBlob = sourceBlob;
   }
 
@@ -266,12 +620,20 @@ export async function processPasfoto(
       finalWidth = 944;
       finalHeight = 1416;
     }
+  } else {
+    // If asli, cap max dimension to 1600px to ensure fluid performance and optimal memory
+    const maxDim = Math.max(finalWidth, finalHeight);
+    if (maxDim > 1600) {
+      const scale = 1600 / maxDim;
+      finalWidth = Math.round(finalWidth * scale);
+      finalHeight = Math.round(finalHeight * scale);
+    }
   }
 
   const canvas = document.createElement('canvas');
   canvas.width = finalWidth;
   canvas.height = finalHeight;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) throw new Error('Canvas 2D context tidak tersedia.');
 
   // Map background color
@@ -285,13 +647,7 @@ export async function processPasfoto(
   else if (bg.startsWith('#') || bg.startsWith('rgb')) hexColor = options.backgroundColor;
   else hexColor = '#D32F2F';
 
-  if (hexColor) {
-    ctx.fillStyle = hexColor;
-    ctx.fillRect(0, 0, finalWidth, finalHeight);
-  } else {
-    ctx.clearRect(0, 0, finalWidth, finalHeight);
-  }
-
+  // Draw portrait bitmap directly onto canvas
   ctx.drawImage(
     portraitBitmap,
     srcX,
@@ -304,6 +660,22 @@ export async function processPasfoto(
     finalHeight
   );
   portraitBitmap.close();
+
+  // Inspect if image already has transparent background (e.g. from neural net or transparent PNG)
+  const isAlreadyTransparent = checkHasTransparency(ctx, finalWidth, finalHeight);
+
+  if (isAlreadyTransparent) {
+    if (hexColor) {
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.fillStyle = hexColor;
+      ctx.fillRect(0, 0, finalWidth, finalHeight);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  } else {
+    // Opaque photo: execute High-Precision Studio Matting & Background Replacement
+    onProgress?.(3, 4, 'Menerapkan Studio AI Matting & penggantian warna latar...');
+    applySmartPortraitMatting(canvas, hexColor);
+  }
 
   onProgress?.(4, 4, 'Mengompres hasil ke target ukuran...');
   const outputMime = hexColor ? 'image/jpeg' : 'image/png';

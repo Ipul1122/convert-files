@@ -99,6 +99,7 @@ export interface ConversionOptions {
   jpgQuality: number; // 0.1 to 1.0
   webpQuality: number; // 0.1 to 1.0
   pageRange: string; // 'all' or '1-3, 5'
+  pageRotations?: Record<number, number>; // page number -> degrees (0, 90, 180, 270)
 
   // Image & WebP transcode options
   targetImageFormat: 'image/webp' | 'image/jpeg' | 'image/png';
