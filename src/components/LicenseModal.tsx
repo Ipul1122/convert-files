@@ -253,16 +253,16 @@ export const LicenseModal: React.FC<LicenseModalProps> = ({
                 href={purchaseUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold font-mono text-center flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.99] cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-stone-950 font-bold font-mono text-center flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.99] cursor-pointer"
               >
                 <Crown size={16} />
-                <span>Beli Akses Seumur Hidup — Rp 20.000 (QRIS Instan)</span>
+                <span>Beli Akses VIP — Rp 20.000 (via WhatsApp)</span>
                 <ExternalLink size={14} className="opacity-80" />
               </a>
 
               <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-text-muted text-center">
                 <Smartphone size={12} />
-                <span>Kode lisensi otomatis diterima dalam hitungan detik setelah bayar</span>
+                <span>Hubungi WhatsApp: 0856-9367-2730 (Pembayaran QRIS / Transfer Bank)</span>
               </div>
             </>
           )}

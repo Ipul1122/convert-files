@@ -43,7 +43,7 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 30 * 1024 * 1024, // 30MB limit to allow pdf.worker.mjs and ONNX wasm offline caching
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,webp}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,webp,tflite}'],
         navigateFallback: process.env.GITHUB_PAGES ? '/convert-files/index.html' : 'index.html',
       }
     })
@@ -53,8 +53,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id: string) {
-          if (id.includes('@imgly')) {
-            return 'imgly-core';
+          if (id.includes('@mediapipe')) {
+            return 'mediapipe-core';
           }
           if (id.includes('pdfjs-dist') || id.includes('pdf-lib')) {
             return 'pdf-core';

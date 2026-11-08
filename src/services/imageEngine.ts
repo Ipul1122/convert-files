@@ -195,23 +195,6 @@ export interface PasfotoOptions {
   quality?: number;
 }
 
-/**
- * Quick probe to check if canvas corners/edges already possess true alpha transparency
- */
-function checkHasTransparency(ctx: CanvasRenderingContext2D, w: number, h: number): boolean {
-  const points: [number, number][] = [
-    [2, 2],
-    [Math.max(0, w - 3), 2],
-    [Math.floor(w / 2), 2],
-    [2, Math.floor(h * 0.25)],
-    [Math.max(0, w - 3), Math.floor(h * 0.25)],
-  ];
-  for (const [x, y] of points) {
-    const pixel = ctx.getImageData(x, y, 1, 1).data;
-    if (pixel[3] < 128) return true;
-  }
-  return false;
-}
 
 /**
  * High-Precision Studio Matting & Background Swap Engine
@@ -332,9 +315,9 @@ export function applySmartPortraitMatting(
   if (isRedBg) baseTol = 62;
   else if (isBlueBg) baseTol = 58;
   else if (isWhiteBg) baseTol = 46;
-  else if (isDarkBg) baseTol = 20; // Tight tolerance on dark backdrops to prevent eating black suits/hair
+  else if (isDarkBg) baseTol = 14; // Ultra-tight tolerance on dark backdrops to prevent eating dark suits/clothing
 
-  const featherSpan = isDarkBg ? 10 : 22;
+  const featherSpan = isDarkBg ? 6 : 22;
 
   // Robust human skin detection (protects face, ears, neck across ethnicities)
   function isSkin(r: number, g: number, b: number): boolean {
@@ -424,18 +407,29 @@ export function applySmartPortraitMatting(
       const ny = Math.floor(n / width);
 
       // Anatomical guards for portrait photos:
-      // 1. Strictly protect chest, suit lapels, tie, and clothing (lower-central torso region)
-      if (ny > height * 0.46 && nx > width * 0.16 && nx < width * 0.84) {
+      // 1. Strictly protect chest, suit lapels, tie, and clothing (torso region)
+      if (ny > height * 0.38 && nx > width * 0.18 && nx < width * 0.82) {
         visited[n] = 1;
         continue;
       }
 
-      // 2. Strictly protect chin, jawline shadow, and neck
-      if (ny > height * 0.28 && ny <= height * 0.46 && nx > width * 0.30 && nx < width * 0.70) {
-        if (isDarkBg || isSkin(nr, ng, nb) || nr + ng + nb < 160) {
+      // 2. Strictly protect chin, jawline shadow, collar, and neck
+      if (ny > height * 0.25 && ny <= height * 0.55 && nx > width * 0.25 && nx < width * 0.75) {
+        if (
+          isDarkBg ||
+          isSkin(nr, ng, nb) ||
+          nr + ng + nb < 160 ||
+          (nr > 190 && ng > 190 && nb > 190)
+        ) {
           visited[n] = 1;
           continue;
         }
+      }
+
+      // 3. Lower torso base boundary protection
+      if (ny > height * 0.65 && nx > width * 0.10 && nx < width * 0.90) {
+        visited[n] = 1;
+        continue;
       }
 
       // Protect subject skin
@@ -529,8 +523,197 @@ export function applySmartPortraitMatting(
   ctx.putImageData(imgData, 0, 0);
 }
 
+// Cache MediaPipe segmenter instance across conversion runs
+let segmenterInstance: any = null;
+
+async function getMediaPipeSegmenter(onProgress?: (msg: string) => void): Promise<any> {
+  if (segmenterInstance) return segmenterInstance;
+
+  onProgress?.('Memuat modul AI segmentasi potret MediaPipe...');
+  const { FilesetResolver, ImageSegmenter } = await import('@mediapipe/tasks-vision');
+
+  const rawBase = import.meta.env.BASE_URL || '/';
+  const baseUrl = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+  const localWasmPath = `${baseUrl}mediapipe/wasm`;
+  const cdnWasmPath = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+
+  let vision;
+  try {
+    vision = await FilesetResolver.forVisionTasks(localWasmPath);
+  } catch (err) {
+    console.warn('Local vision wasm unavailable, fallback to CDN:', err);
+    vision = await FilesetResolver.forVisionTasks(cdnWasmPath);
+  }
+
+  onProgress?.('Menyiapkan model AI pasfoto manusia...');
+  const localModelPath = `${baseUrl}models/selfie_segmenter.tflite`;
+  const cdnModelPath =
+    'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite';
+
+  try {
+    segmenterInstance = await ImageSegmenter.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: localModelPath,
+        delegate: 'GPU',
+      },
+      runningMode: 'IMAGE',
+      outputCategoryMask: false,
+      outputConfidenceMasks: true,
+    });
+  } catch (err) {
+    console.warn('Local model unavailable, fallback to CDN:', err);
+    segmenterInstance = await ImageSegmenter.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: cdnModelPath,
+        delegate: 'GPU',
+      },
+      runningMode: 'IMAGE',
+      outputCategoryMask: false,
+      outputConfidenceMasks: true,
+    });
+  }
+
+  return segmenterInstance;
+}
+
 /**
- * AI Pasfoto Studio: Background removal (WebAssembly/ONNX) + High-Precision Studio Matting + Smart auto-crop + Color swap + Target KB
+ * Apply AI Portrait Segmentation using Google MediaPipe Selfie Segmenter
+ * Accurately segments hair, face, neck, suit, lapels, and clothing with sub-pixel anti-aliasing.
+ */
+export async function applyPortraitAiSegmentation(
+  canvas: HTMLCanvasElement,
+  targetHexColor: string | null,
+  onProgress?: (msg: string) => void
+): Promise<void> {
+  const segmenter = await getMediaPipeSegmenter(onProgress);
+
+  onProgress?.('Menganalisis subjek potret via AI...');
+  const result = segmenter.segment(canvas);
+  const confidenceMasks = result.confidenceMasks;
+  if (!confidenceMasks || confidenceMasks.length === 0) {
+    throw new Error('Mask segmentasi tidak dihasilkan oleh model AI.');
+  }
+
+  const mask = confidenceMasks[0];
+  const maskWidth = mask.width;
+  const maskHeight = mask.height;
+  const maskFloats = mask.getAsFloat32Array();
+
+  // Create low-res mask canvas
+  const maskCanvas = document.createElement('canvas');
+  maskCanvas.width = maskWidth;
+  maskCanvas.height = maskHeight;
+  const maskCtx = maskCanvas.getContext('2d');
+  if (!maskCtx) throw new Error('Mask canvas context tidak tersedia.');
+
+  const maskImgData = maskCtx.createImageData(maskWidth, maskHeight);
+  const maskPixels = maskImgData.data;
+
+  for (let i = 0; i < maskFloats.length; i++) {
+    let conf = maskFloats[i];
+    if (conf < 0) conf = 0;
+    if (conf > 1) conf = 1;
+
+    // Smoothstep curve: crisp clothing edges while retaining natural anti-aliased hair strands
+    if (conf <= 0.08) {
+      conf = 0;
+    } else if (conf >= 0.92) {
+      conf = 1;
+    } else {
+      const t = (conf - 0.08) / 0.84;
+      conf = t * t * (3 - 2 * t);
+    }
+
+    const pIdx = i * 4;
+    maskPixels[pIdx] = 255;
+    maskPixels[pIdx + 1] = 255;
+    maskPixels[pIdx + 2] = 255;
+    maskPixels[pIdx + 3] = Math.round(conf * 255);
+  }
+  maskCtx.putImageData(maskImgData, 0, 0);
+
+  // Upscale mask to canvas dimensions with high-quality bicubic smoothing
+  const fullWidth = canvas.width;
+  const fullHeight = canvas.height;
+  const scaledMaskCanvas = document.createElement('canvas');
+  scaledMaskCanvas.width = fullWidth;
+  scaledMaskCanvas.height = fullHeight;
+  const scaledMaskCtx = scaledMaskCanvas.getContext('2d');
+  if (!scaledMaskCtx) throw new Error('Scaled mask canvas context tidak tersedia.');
+
+  scaledMaskCtx.imageSmoothingEnabled = true;
+  scaledMaskCtx.imageSmoothingQuality = 'high';
+  scaledMaskCtx.drawImage(maskCanvas, 0, 0, fullWidth, fullHeight);
+  const scaledMaskData = scaledMaskCtx.getImageData(0, 0, fullWidth, fullHeight).data;
+
+  // Clean up low-res mask resources
+  mask.close();
+  maskCanvas.width = 0;
+  maskCanvas.height = 0;
+  scaledMaskCanvas.width = 0;
+  scaledMaskCanvas.height = 0;
+
+  // Composite new background onto target canvas
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Canvas 2D context tidak tersedia.');
+
+  const imgData = ctx.getImageData(0, 0, fullWidth, fullHeight);
+  const pixels = imgData.data;
+  const totalPixels = fullWidth * fullHeight;
+
+  let targetR = 0;
+  let targetG = 0;
+  let targetB = 0;
+  if (targetHexColor) {
+    const clean = targetHexColor.replace('#', '');
+    if (clean.length === 3) {
+      targetR = parseInt(clean[0] + clean[0], 16);
+      targetG = parseInt(clean[1] + clean[1], 16);
+      targetB = parseInt(clean[2] + clean[2], 16);
+    } else {
+      targetR = parseInt(clean.slice(0, 2), 16);
+      targetG = parseInt(clean.slice(2, 4), 16);
+      targetB = parseInt(clean.slice(4, 6), 16);
+    }
+  }
+
+  onProgress?.('Menerapkan warna latar belakang studio...');
+  for (let i = 0; i < totalPixels; i++) {
+    const pIdx = i * 4;
+    const w = scaledMaskData[pIdx + 3] / 255; // 1.0 = subject, 0.0 = background
+
+    if (targetHexColor === null) {
+      // Transparent PNG
+      pixels[pIdx + 3] = Math.round(w * 255);
+    } else {
+      if (w >= 0.99) {
+        // Pure subject: 100% untouched original color (suit, collar, hair, skin)
+        pixels[pIdx + 3] = 255;
+      } else if (w <= 0.01) {
+        // Pure background: 100% target color
+        pixels[pIdx] = targetR;
+        pixels[pIdx + 1] = targetG;
+        pixels[pIdx + 2] = targetB;
+        pixels[pIdx + 3] = 255;
+      } else {
+        // Anti-aliased hair tips and silhouette blending
+        const origR = pixels[pIdx];
+        const origG = pixels[pIdx + 1];
+        const origB = pixels[pIdx + 2];
+
+        pixels[pIdx] = Math.round(w * origR + (1 - w) * targetR);
+        pixels[pIdx + 1] = Math.round(w * origG + (1 - w) * targetG);
+        pixels[pIdx + 2] = Math.round(w * origB + (1 - w) * targetB);
+        pixels[pIdx + 3] = 255;
+      }
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+}
+
+/**
+ * AI Pasfoto Studio: Background removal (MediaPipe AI) + Smart Studio Matting + Auto-crop + Color swap + Target KB
  */
 export async function processPasfoto(
   file: File,
@@ -547,38 +730,8 @@ export async function processPasfoto(
     sourceBlob = await convertHeicToUniversalBlob(file);
   }
 
-  onProgress?.(2, 4, 'Menghilangkan latar belakang via AI WebAssembly...');
-  let transparentBlob: Blob = sourceBlob;
-  try {
-    const { removeBackground } = await import('@imgly/background-removal');
-    transparentBlob = await removeBackground(sourceBlob, {
-      model: 'isnet_quint8',
-      output: {
-        format: 'image/png',
-        quality: 0.95,
-      },
-      progress: (key: string, current: number, total: number) => {
-        if (key.startsWith('fetch')) {
-          const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-          onProgress?.(2, 4, `Mengunduh model AI (${pct}%)...`);
-        } else if (key === 'compute:decode') {
-          onProgress?.(2, 4, 'Mendekode gambar...');
-        } else if (key === 'compute:inference') {
-          onProgress?.(2, 4, 'Menjalankan AI segmentasi objek...');
-        } else if (key === 'compute:mask') {
-          onProgress?.(2, 4, 'Menyempurnakan tepi rambut & pakaian...');
-        } else {
-          onProgress?.(2, 4, 'Menghilangkan latar belakang via AI...');
-        }
-      },
-    });
-  } catch (err) {
-    console.warn('AI Background Removal notice, applying high-precision studio matting:', err);
-    transparentBlob = sourceBlob;
-  }
-
-  onProgress?.(3, 4, 'Menerapkan auto-crop proporsional & warna latar...');
-  const portraitBitmap = await createImageBitmap(transparentBlob);
+  onProgress?.(2, 4, 'Menerapkan auto-crop proporsional pasfoto...');
+  const portraitBitmap = await createImageBitmap(sourceBlob);
 
   let finalWidth = portraitBitmap.width;
   let finalHeight = portraitBitmap.height;
@@ -636,18 +789,7 @@ export async function processPasfoto(
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) throw new Error('Canvas 2D context tidak tersedia.');
 
-  // Map background color
-  let hexColor: string | null = null;
-  const bg = options.backgroundColor.toLowerCase();
-  if (bg === 'merah' || bg === 'red') hexColor = '#D32F2F'; // Standar Pasfoto Merah KTP / Ganjil
-  else if (bg === 'biru' || bg === 'blue') hexColor = '#1976D2'; // Standar Pasfoto Biru KTP / Genap
-  else if (bg === 'putih' || bg === 'white') hexColor = '#FFFFFF';
-  else if (bg === 'abu' || bg === 'gray') hexColor = '#9E9E9E';
-  else if (bg === 'transparan' || bg === 'none') hexColor = null;
-  else if (bg.startsWith('#') || bg.startsWith('rgb')) hexColor = options.backgroundColor;
-  else hexColor = '#D32F2F';
-
-  // Draw portrait bitmap directly onto canvas
+  // Draw portrait bitmap cropped directly onto canvas
   ctx.drawImage(
     portraitBitmap,
     srcX,
@@ -661,19 +803,25 @@ export async function processPasfoto(
   );
   portraitBitmap.close();
 
-  // Inspect if image already has transparent background (e.g. from neural net or transparent PNG)
-  const isAlreadyTransparent = checkHasTransparency(ctx, finalWidth, finalHeight);
+  // Map background color
+  let hexColor: string | null = null;
+  const bg = options.backgroundColor.toLowerCase();
+  if (bg === 'merah' || bg === 'red') hexColor = '#D32F2F'; // Standar Pasfoto Merah KTP / Ganjil
+  else if (bg === 'biru' || bg === 'blue') hexColor = '#1976D2'; // Standar Pasfoto Biru KTP / Genap
+  else if (bg === 'putih' || bg === 'white') hexColor = '#FFFFFF';
+  else if (bg === 'abu' || bg === 'gray') hexColor = '#9E9E9E';
+  else if (bg === 'transparan' || bg === 'none') hexColor = null;
+  else if (bg.startsWith('#') || bg.startsWith('rgb')) hexColor = options.backgroundColor;
+  else hexColor = '#D32F2F';
 
-  if (isAlreadyTransparent) {
-    if (hexColor) {
-      ctx.globalCompositeOperation = 'destination-over';
-      ctx.fillStyle = hexColor;
-      ctx.fillRect(0, 0, finalWidth, finalHeight);
-      ctx.globalCompositeOperation = 'source-over';
-    }
-  } else {
-    // Opaque photo: execute High-Precision Studio Matting & Background Replacement
-    onProgress?.(3, 4, 'Menerapkan Studio AI Matting & penggantian warna latar...');
+  // Execute AI Background Segmentation (with fallback to smart studio matting)
+  try {
+    await applyPortraitAiSegmentation(canvas, hexColor, (msg) => {
+      onProgress?.(3, 4, msg);
+    });
+  } catch (err) {
+    console.warn('AI Segmentation notice, applying smart studio matting fallback:', err);
+    onProgress?.(3, 4, 'Menerapkan Studio Matting & penggantian latar...');
     applySmartPortraitMatting(canvas, hexColor);
   }
 

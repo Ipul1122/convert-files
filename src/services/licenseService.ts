@@ -177,8 +177,10 @@ export async function activateLicenseWithSupabase(
     };
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl =
+    import.meta.env.VITE_SUPABASE_URL || 'https://cvfgminvrjthzqmverkj.supabase.co';
+  const supabaseKey =
+    import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_bJI2erqVBy1Y3Fi9qKvMOw_-qteENQ0';
 
   if (!supabaseUrl || !supabaseKey) {
     return {
@@ -275,12 +277,16 @@ export function removeLocalLicense(): void {
 }
 
 /**
- * Get the payment / purchase link (Lynk.id / Mayar / custom)
+ * Get the payment / purchase link (WhatsApp Admin)
  */
 export function getPurchaseUrl(): string {
+  const waNumber = '6285693672730';
+  const defaultMsg = encodeURIComponent(
+    'Halo Admin, saya ingin membeli Kode Lisensi VIP Seumur Hidup LocalVault (Rp 20.000).'
+  );
   return (
     import.meta.env.VITE_PURCHASE_URL ||
-    'https://lynk.id/' // Replace with actual Lynk.id / Mayar link
+    `https://wa.me/${waNumber}?text=${defaultMsg}`
   );
 }
 

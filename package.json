@@ -7,12 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/copy-404.js",
-    "lint": "oxlint",
+    "lint": "oxlint src",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@imgly/background-removal": "^1.7.0",
-    "@imgly/background-removal-data": "^1.4.5",
+    "@mediapipe/tasks-vision": "^1.2.2",
     "dexie": "^4.4.7",
     "docx": "^9.15.3",
     "heic2any": "^0.0.4",
