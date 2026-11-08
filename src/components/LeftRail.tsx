@@ -20,8 +20,9 @@ import {
   Monitor,
   CheckCircle,
   Smartphone,
+  Crown,
 } from 'lucide-react';
-import type { ToolType } from '../types';
+import type { ToolType, LicenseInfo } from '../types';
 import { formatBytes } from '../utils/formatters';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { InstallModal } from './InstallModal';
@@ -33,6 +34,8 @@ interface LeftRailProps {
   vaultJobCount: number;
   maxStorageMB: number;
   isOffline: boolean;
+  licenseInfo?: LicenseInfo;
+  onOpenLicenseModal?: () => void;
 }
 
 export const LeftRail: React.FC<LeftRailProps> = ({
@@ -42,6 +45,8 @@ export const LeftRail: React.FC<LeftRailProps> = ({
   vaultJobCount,
   maxStorageMB,
   isOffline,
+  licenseInfo,
+  onOpenLicenseModal,
 }) => {
   const [mobileFileSheetOpen, setMobileFileSheetOpen] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
@@ -233,6 +238,22 @@ export const LeftRail: React.FC<LeftRailProps> = ({
               <span>PASANG</span>
             </button>
           )}
+          {/* Mobile VIP Status or Upgrade Button */}
+          {onOpenLicenseModal && (
+            <button
+              type="button"
+              onClick={onOpenLicenseModal}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer shadow-xs active:scale-95 transition-all ${
+                licenseInfo?.isVip
+                  ? 'bg-amber-500/15 border border-amber-500/40 text-amber-300'
+                  : 'bg-linear-to-r from-amber-500/20 to-amber-600/15 border border-amber-500/50 text-amber-300'
+              }`}
+            >
+              <Crown size={11} className={licenseInfo?.isVip ? 'text-amber-400' : 'text-amber-400 animate-pulse'} />
+              <span>{licenseInfo?.isVip ? 'VIP' : 'VIP 20K'}</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-bg border border-border-subtle text-[10px] font-mono text-text-secondary">
             <span className="w-1.5 h-1.5 rounded-full bg-status-ok shrink-0 animate-pulse" />
             <span>{isOffline ? 'AIRPLANE OK' : '100% OFFLINE'}</span>
@@ -302,6 +323,41 @@ export const LeftRail: React.FC<LeftRailProps> = ({
                 </div>
                 <Download size={11} strokeWidth={2.5} />
               </button>
+            )}
+
+            {/* Desktop VIP Lifetime Access Banner / Status */}
+            {onOpenLicenseModal && (
+              licenseInfo?.isVip ? (
+                <button
+                  type="button"
+                  onClick={onOpenLicenseModal}
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold transition-all cursor-pointer shadow-xs active:scale-98"
+                  title="Lihat Rincian Lisensi VIP Anda"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Crown size={12} className="text-amber-400" />
+                    <span>VIP SEUMUR HIDUP</span>
+                  </div>
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    AKTIF
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onOpenLicenseModal}
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded bg-linear-to-r from-amber-500/15 via-amber-600/10 to-transparent hover:from-amber-500/25 hover:to-amber-600/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold transition-all cursor-pointer shadow-xs active:scale-98"
+                  title="Aktivasi Akses Seumur Hidup Rp 20.000"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Crown size={12} className="text-amber-400 animate-pulse" />
+                    <span>BUKA VIP (RP 20K)</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-amber-400/90">
+                    {licenseInfo?.dailyQuotaRemaining ?? 5}/5
+                  </span>
+                </button>
+              )
             )}
           </div>
 

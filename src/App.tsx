@@ -49,6 +49,9 @@ import {
 import { generateDefaultFilename, getExecutionCtaState, downloadBlob } from './utils/formatters';
 import { getToolFromPath, navigateToTool } from './utils/router';
 import { ExportPromoModal } from './components/ExportPromoModal';
+import { LicenseModal } from './components/LicenseModal';
+import { getLicenseInfo, consumeConversionQuota } from './services/licenseService';
+import type { LicenseInfo } from './types';
 import {
   getAvailableTargets,
   getInputTypeSummary,
@@ -102,6 +105,15 @@ export function App() {
 
   // Network state
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  // License & VIP State
+  const [licenseInfo, setLicenseInfo] = useState<LicenseInfo>(() => getLicenseInfo());
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
+  const [quotaExceededMessage, setQuotaExceededMessage] = useState<string | null>(null);
+
+  const refreshLicenseInfo = useCallback(() => {
+    setLicenseInfo(getLicenseInfo());
+  }, []);
 
   // Compute dynamic conversion targets based on currently loaded files
   const availableTargets = useMemo(() => getAvailableTargets(files), [files]);
@@ -502,6 +514,19 @@ export function App() {
   const handleExecute = async () => {
     if (files.length === 0 || isProcessing) return;
 
+    // Check License & Daily Free Quota
+    if (!licenseInfo.isVip) {
+      const allowed = consumeConversionQuota();
+      if (!allowed) {
+        setQuotaExceededMessage(
+          'Batas 5 konversi gratis harian Anda telah tercapai. Buka akses VIP Seumur Hidup hanya Rp 20.000 untuk konversi tanpa batas di 2 perangkat Anda.'
+        );
+        setShowLicenseModal(true);
+        return;
+      }
+      refreshLicenseInfo();
+    }
+
     setIsProcessing(true);
     setErrorMessage(null);
     setConversionResult(null);
@@ -894,6 +919,11 @@ export function App() {
         vaultJobCount={vaultJobCount}
         maxStorageMB={maxStorageMB}
         isOffline={isOffline}
+        licenseInfo={licenseInfo}
+        onOpenLicenseModal={() => {
+          setQuotaExceededMessage(null);
+          setShowLicenseModal(true);
+        }}
       />
 
       {/* Center Canvas (flex-1) */}
@@ -1008,6 +1038,22 @@ export function App() {
             downloadBlob(conversionResult.blob, conversionResult.filename);
           }
         }}
+      />
+
+      {/* License & VIP Modal */}
+      <LicenseModal
+        isOpen={showLicenseModal}
+        onClose={() => {
+          setShowLicenseModal(false);
+          setQuotaExceededMessage(null);
+        }}
+        licenseInfo={licenseInfo}
+        onLicenseUpdated={() => {
+          refreshLicenseInfo();
+          setShowLicenseModal(false);
+          setQuotaExceededMessage(null);
+        }}
+        quotaExceededMessage={quotaExceededMessage}
       />
     </div>
   );
