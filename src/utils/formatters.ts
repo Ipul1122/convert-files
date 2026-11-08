@@ -37,6 +37,22 @@ export function formatToolLabel(toolType: string): string {
       return 'PDF → PNG';
     case 'pdf-to-webp':
       return 'PDF → WEBP';
+    case 'pdf-to-docx':
+      return 'PDF → WORD';
+    case 'pdf-to-xlsx':
+      return 'PDF → EXCEL';
+    case 'pdf-to-pptx':
+      return 'PDF → PPTX';
+    case 'pdf-to-txt':
+      return 'PDF → TXT';
+    case 'compress-pdf':
+      return 'KOMPRES PDF';
+    case 'heic-to-img':
+      return 'HEIC → GAMBAR';
+    case 'pasfoto':
+      return 'PASFOTO AI STUDIO';
+    case 'watermark':
+      return 'WATERMARK PENGAMAN';
     case 'img-to-webp':
       return 'GAMBAR → WEBP';
     case 'webp-to-img':
@@ -146,6 +162,24 @@ export function generateDefaultFilename(inputFiles: { name: string }[], toolType
       return `${first}_gambar.zip`;
     case 'pdf-to-webp':
       return `${first}_webp.zip`;
+    case 'pdf-to-docx':
+      return `${first}.docx`;
+    case 'pdf-to-xlsx':
+      return `${first}.xlsx`;
+    case 'pdf-to-pptx':
+      return `${first}.pptx`;
+    case 'pdf-to-txt':
+      return `${first}.txt`;
+    case 'compress-pdf':
+      return `${first}_terkompres.pdf`;
+    case 'heic-to-img':
+      return inputFiles.length === 1 ? `${first}.jpg` : `kumpulan_foto_${timestamp}.zip`;
+    case 'pasfoto':
+      return `${first}_pasfoto.jpg`;
+    case 'watermark':
+      return inputFiles.length > 0 && inputFiles[0].name.toLowerCase().endsWith('.pdf')
+        ? `${first}_watermark.pdf`
+        : `${first}_watermark.jpg`;
     case 'img-to-webp':
       return inputFiles.length === 1 ? `${first}.webp` : `kumpulan_webp_${timestamp}.zip`;
     case 'webp-to-img':
@@ -214,6 +248,30 @@ export function getExecutionCtaState(
   }
   if (toolType === 'office-media') {
     return { canExecute: filesCount > 0, ctaLabel: 'EKSTRAK MEDIA DOKUMEN' };
+  }
+  if (toolType === 'pdf-to-docx') {
+    return { canExecute: filesCount > 0, ctaLabel: 'KONVERSI PDF KE WORD' };
+  }
+  if (toolType === 'pdf-to-xlsx') {
+    return { canExecute: filesCount > 0, ctaLabel: 'KONVERSI PDF KE EXCEL' };
+  }
+  if (toolType === 'pdf-to-pptx') {
+    return { canExecute: filesCount > 0, ctaLabel: 'KONVERSI PDF KE POWERPOINT' };
+  }
+  if (toolType === 'pdf-to-txt') {
+    return { canExecute: filesCount > 0, ctaLabel: 'EKSTRAK TEKS PDF' };
+  }
+  if (toolType === 'compress-pdf') {
+    return { canExecute: filesCount > 0, ctaLabel: 'KOMPRES DOKUMEN PDF' };
+  }
+  if (toolType === 'heic-to-img') {
+    return { canExecute: filesCount > 0, ctaLabel: filesCount <= 1 ? 'KONVERSI FOTO HEIC' : `KONVERSI ${filesCount} FOTO HEIC` };
+  }
+  if (toolType === 'pasfoto') {
+    return { canExecute: filesCount > 0, ctaLabel: 'PROSES PASFOTO AI' };
+  }
+  if (toolType === 'watermark') {
+    return { canExecute: filesCount > 0, ctaLabel: 'PASANG WATERMARK PENGAMAN' };
   }
 
   const isImageToPdf = toolType === 'img-to-pdf';

@@ -8,6 +8,8 @@ import { PdfPageSplitter } from './PdfPageSplitter';
 import { VaultViewer } from './VaultViewer';
 import { ResultBanner } from './ResultBanner';
 import { TargetSelector } from './TargetSelector';
+import { SupportedFormatsBadge } from './SupportedFormatsBadge';
+import { getToolMetadata, filterFilesForTool, getFormatRejectionMessage } from '../utils/toolMetadata';
 
 interface CenterCanvasProps {
   toolType: ToolType;
@@ -24,6 +26,7 @@ interface CenterCanvasProps {
   onMoveFile: (index: number, direction: 'up' | 'down') => void;
   errorMessage: string | null;
   onClearError: () => void;
+  onError?: (msg: string) => void;
   conversionResult: ConversionResult | null;
   onDismissResult: () => void;
   onViewInVault: () => void;
@@ -63,35 +66,14 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
   onPageRangeChange = () => {},
   onOpenPromo,
   onSelectTool,
+  onError,
 }) => {
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef<number>(0);
   const [isDragOverCanvas, setIsDragOverCanvas] = useState(false);
 
-  const isSmart = toolType === 'smart';
-  const isImageTool = effectiveTool === 'img-to-pdf' || effectiveTool === 'img-to-webp';
-  const isWebpOnlyTool = effectiveTool === 'webp-to-img';
-
-  const ALL_OFFICE_ACCEPTS = '.docx,.xlsx,.xls,.csv,.pptx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/csv';
-
-  let acceptedTypes = 'application/pdf,.pdf';
-  if (isSmart) {
-    acceptedTypes = `application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp,${ALL_OFFICE_ACCEPTS}`;
-  } else if (isImageTool) {
-    acceptedTypes = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
-  } else if (isWebpOnlyTool) {
-    acceptedTypes = 'image/webp,.webp';
-  } else if (effectiveTool === 'word-to-pdf' || effectiveTool === 'word-to-html' || effectiveTool === 'word-to-txt') {
-    acceptedTypes = '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-  } else if (effectiveTool === 'excel-to-pdf' || effectiveTool === 'excel-to-csv') {
-    acceptedTypes = '.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv';
-  } else if (effectiveTool === 'csv-to-excel') {
-    acceptedTypes = '.csv,text/csv';
-  } else if (effectiveTool === 'pptx-to-pdf') {
-    acceptedTypes = '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation';
-  } else if (effectiveTool === 'office-media') {
-    acceptedTypes = '.docx,.pptx';
-  }
+  const meta = getToolMetadata(effectiveTool);
+  const acceptedTypes = meta.acceptAttribute;
 
   // Always reset drag state whenever files change or on unmount
   useEffect(() => {
@@ -116,7 +98,14 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
 
   const handleHiddenFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onFilesSelected(Array.from(e.target.files));
+      const allFiles = Array.from(e.target.files);
+      const { valid, rejected } = filterFilesForTool(allFiles, effectiveTool);
+      if (rejected.length > 0 && onError) {
+        onError(getFormatRejectionMessage(rejected, effectiveTool));
+      }
+      if (valid.length > 0) {
+        onFilesSelected(valid);
+      }
       e.target.value = '';
     }
   };
@@ -152,7 +141,14 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
     if (files.length === 0) return;
     e.preventDefault();
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-      onFilesSelected(Array.from(e.dataTransfer.files));
+      const allFiles = Array.from(e.dataTransfer.files);
+      const { valid, rejected } = filterFilesForTool(allFiles, effectiveTool);
+      if (rejected.length > 0 && onError) {
+        onError(getFormatRejectionMessage(rejected, effectiveTool));
+      }
+      if (valid.length > 0) {
+        onFilesSelected(valid);
+      }
     }
   };
 
@@ -184,20 +180,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       <input
         ref={hiddenInputRef}
         type="file"
-        multiple={
-          effectiveTool !== 'split-pdf' &&
-          effectiveTool !== 'pdf-to-jpg' &&
-          effectiveTool !== 'pdf-to-png' &&
-          effectiveTool !== 'pdf-to-webp' &&
-          effectiveTool !== 'word-to-pdf' &&
-          effectiveTool !== 'word-to-html' &&
-          effectiveTool !== 'word-to-txt' &&
-          effectiveTool !== 'excel-to-pdf' &&
-          effectiveTool !== 'excel-to-csv' &&
-          effectiveTool !== 'csv-to-excel' &&
-          effectiveTool !== 'pptx-to-pdf' &&
-          effectiveTool !== 'office-media'
-        }
+        multiple={meta.isMultiFile}
         accept={acceptedTypes}
         className="hidden"
         onChange={handleHiddenFileChange}
@@ -234,6 +217,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
           toolType={toolType}
           onFilesSelected={onFilesSelected}
           onSelectTool={onSelectTool}
+          onError={onError}
         />
       ) : (
         <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -248,6 +232,9 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
               onOpenParams={onOpenParams}
             />
           )}
+
+          {/* Persistent Tool & Supported Formats Strip */}
+          <SupportedFormatsBadge toolType={effectiveTool} variant="strip" />
 
           {/* If tool is Split PDF and loaded file is PDF, show visual Splitter grid */}
           {effectiveTool === 'split-pdf' && isPdfFile ? (

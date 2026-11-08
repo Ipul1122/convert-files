@@ -11,12 +11,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
+    "@imgly/background-removal-data": "^1.4.5",
     "dexie": "^4.4.7",
+    "docx": "^9.15.3",
+    "heic2any": "^0.0.4",
     "jszip": "^3.10.2",
     "lucide-react": "^1.61.0",
     "mammoth": "^1.13.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299",
+    "pptxgenjs": "^4.0.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "vite-plugin-pwa": "^2.0.0",

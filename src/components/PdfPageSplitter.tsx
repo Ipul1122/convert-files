@@ -202,6 +202,9 @@ export const PdfPageSplitter: React.FC<PdfPageSplitterProps> = ({
             <span className="text-xs font-bold font-mono uppercase text-text-primary">
               Pemisahan Halaman PDF
             </span>
+            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-red-900/60 bg-red-950/30 text-red-400 font-bold">
+              .PDF
+            </span>
             <span className="font-mono text-xs px-2 py-0.5 rounded bg-surface-elevated text-accent-solid font-semibold border border-border-subtle">
               {selectedPages.size} DARI {totalPages} DIPILIH
             </span>

@@ -22,11 +22,16 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
   const hasExcel = files.some(f => /\.(xlsx|xls)$/i.test(f.name));
   const hasCsv = files.some(f => /\.csv$/i.test(f.name));
   const hasPpt = files.some(f => /\.pptx$/i.test(f.name));
+  const hasHeic = files.some(
+    f => f.file.type === 'image/heic' || f.file.type === 'image/heif' || /\.(heic|heif)$/i.test(f.name)
+  );
   const hasPdf = files.some(
     f => f.file.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
   );
   const hasImage = files.some(
-    f => f.file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(f.name)
+    f =>
+      f.file.type.startsWith('image/') ||
+      /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name)
   );
 
   // Kasus 1: Dokumen Word (.docx)
@@ -129,6 +134,48 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
 
     const targets: TargetOption[] = [
       {
+        id: 'pdf-to-docx',
+        label: '.DOCX',
+        badge: 'WORD EDITABLE',
+        description: 'Ekstrak teks dan susunan dokumen PDF ke Microsoft Word (.docx) langsung di peramban',
+        toolType: 'pdf-to-docx',
+      },
+      {
+        id: 'pdf-to-xlsx',
+        label: '.XLSX',
+        badge: 'EXCEL TABEL',
+        description: 'Ekstrak tabel dan data spreadsheet PDF ke Microsoft Excel (.xlsx) per sheet halaman',
+        toolType: 'pdf-to-xlsx',
+      },
+      {
+        id: 'pdf-to-pptx',
+        label: '.PPTX',
+        badge: 'POWERPOINT',
+        description: 'Ubah lembaran PDF menjadi slide presentasi Microsoft PowerPoint (.pptx) beresolusi tinggi',
+        toolType: 'pdf-to-pptx',
+      },
+      {
+        id: 'compress-pdf',
+        label: 'KOMPRES',
+        badge: 'HEMAT RUANG',
+        description: 'Kecilkan ukuran PDF agar sesuai batas unggah CPNS, BKN, lamaran kerja, atau email',
+        toolType: 'compress-pdf',
+      },
+      {
+        id: 'pdf-watermark',
+        label: 'WATERMARK',
+        badge: 'PENGAMAN KTP',
+        description: 'Beri cap teks pengaman diagonal / berulang pada seluruh halaman PDF',
+        toolType: 'watermark',
+      },
+      {
+        id: 'pdf-to-txt',
+        label: '.TXT',
+        badge: 'TEKS MURNI',
+        description: 'Ekstrak seluruh konten teks PDF menjadi berkas teks UTF-8 murni',
+        toolType: 'pdf-to-txt',
+      },
+      {
         id: 'pdf-to-jpg',
         label: '.JPG',
         badge: 'POPULER',
@@ -147,7 +194,7 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
       {
         id: 'pdf-to-webp',
         label: '.WEBP',
-        badge: 'HEMAT RUANG',
+        badge: 'WEB ASSET',
         description: 'Ekspor halaman PDF ke format gambar WebP ringan langsung di RAM',
         toolType: 'pdf-to-webp',
         format: 'image/webp',
@@ -174,7 +221,7 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
     return targets;
   }
 
-  // Kasus 6: Berkas Gambar (JPG, PNG, WebP)
+  // Kasus 6: Berkas Gambar (JPG, PNG, WebP, HEIC)
   if (hasImage && !hasPdf) {
     const isMultiImage = files.length > 1;
     const isAllWebp = files.every(
@@ -189,6 +236,52 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
 
     const targets: TargetOption[] = [];
 
+    // Jika berkas HEIC terdeteksi, prioritaskan ekspor ke JPG universal & PNG
+    if (hasHeic) {
+      targets.push({
+        id: 'heic-to-jpg',
+        label: '.JPG',
+        badge: 'UNIVERSAL',
+        description: 'Konversi foto HEIC Apple ke format JPEG universal yang kompatibel di semua perangkat',
+        toolType: 'heic-to-img',
+        targetImageFormat: 'image/jpeg',
+      });
+      targets.push({
+        id: 'heic-to-png',
+        label: '.PNG',
+        badge: 'LOSSLESS',
+        description: 'Konversi foto HEIC Apple ke format PNG jernih tanpa artefak kompresi',
+        toolType: 'heic-to-img',
+        targetImageFormat: 'image/png',
+      });
+      targets.push({
+        id: 'heic-to-webp',
+        label: '.WEBP',
+        badge: 'HEMAT RUANG',
+        description: 'Konversi foto HEIC Apple ke format gambar WebP ringan modern',
+        toolType: 'heic-to-img',
+        targetImageFormat: 'image/webp',
+      });
+    }
+
+    // Pasfoto AI Studio (Ganti Latar & Auto-Crop)
+    targets.push({
+      id: 'img-pasfoto',
+      label: 'PASFOTO',
+      badge: 'AI STUDIO',
+      description: 'Ganti latar merah/biru via AI WebAssembly, auto-crop 2x3/3x4/4x6, & kunci target KB',
+      toolType: 'pasfoto',
+    });
+
+    // Watermark Pengaman KTP / Dokumen
+    targets.push({
+      id: 'img-watermark',
+      label: 'WATERMARK',
+      badge: 'PENGAMAN KTP',
+      description: 'Pasang cap pengaman anti-penyalahgunaan pada scan foto KTP, KK, atau SIM',
+      toolType: 'watermark',
+    });
+
     // PDF selalu menjadi opsi unggulan untuk gambar
     targets.push({
       id: 'img-to-pdf',
@@ -200,7 +293,7 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
       toolType: 'img-to-pdf',
     });
 
-    if (!isAllWebp) {
+    if (!isAllWebp && !hasHeic) {
       targets.push({
         id: 'img-to-webp',
         label: '.WEBP',
@@ -211,7 +304,7 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
       });
     }
 
-    if (!isAllPng) {
+    if (!isAllPng && !hasHeic) {
       targets.push({
         id: 'transcode-to-png',
         label: '.PNG',
@@ -222,7 +315,7 @@ export function getAvailableTargets(files: SourceFile[]): TargetOption[] {
       });
     }
 
-    if (!isAllJpeg) {
+    if (!isAllJpeg && !hasHeic) {
       targets.push({
         id: 'transcode-to-jpg',
         label: '.JPG',
@@ -266,6 +359,9 @@ export function getInputTypeSummary(files: SourceFile[]): {
   const hasPdf = files.some(
     f => f.file.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
   );
+  const hasHeic = files.some(
+    f => f.file.type === 'image/heic' || f.file.type === 'image/heif' || /\.(heic|heif)$/i.test(f.name)
+  );
   const hasWebp = files.some(
     f => f.file.type === 'image/webp' || /\.webp$/i.test(f.name)
   );
@@ -285,6 +381,8 @@ export function getInputTypeSummary(files: SourceFile[]): {
     typeLabel = 'CSV';
   } else if (hasPpt) {
     typeLabel = 'POWERPOINT';
+  } else if (hasHeic) {
+    typeLabel = 'HEIC FOTO';
   } else if (hasPdf && !hasWebp && !hasJpg && !hasPng) {
     typeLabel = 'PDF';
   } else if (!hasPdf && hasJpg && !hasPng && !hasWebp) {

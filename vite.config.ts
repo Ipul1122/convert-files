@@ -42,14 +42,29 @@ export default defineConfig({
         ]
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit to allow pdf.worker.mjs offline caching
+        maximumFileSizeToCacheInBytes: 30 * 1024 * 1024, // 30MB limit to allow pdf.worker.mjs and ONNX wasm offline caching
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,webp}'],
         navigateFallback: process.env.GITHUB_PAGES ? '/convert-files/index.html' : 'index.html',
       }
     })
   ],
   build: {
-    chunkSizeWarningLimit: 3000,
+    chunkSizeWarningLimit: 4000,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('@imgly')) {
+            return 'imgly-core';
+          }
+          if (id.includes('pdfjs-dist') || id.includes('pdf-lib')) {
+            return 'pdf-core';
+          }
+          if (id.includes('docx') || id.includes('xlsx') || id.includes('mammoth') || id.includes('pptxgenjs')) {
+            return 'office-core';
+          }
+        },
+      },
+    },
   },
   optimizeDeps: {
     include: ['pdfjs-dist', 'pdf-lib', 'dexie', 'jszip', 'lucide-react']

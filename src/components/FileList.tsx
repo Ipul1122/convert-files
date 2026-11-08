@@ -44,6 +44,12 @@ export const FileList: React.FC<FileListProps> = ({
 
   const isSingleFileTool =
     toolType === 'split-pdf' ||
+    toolType === 'pasfoto' ||
+    toolType === 'pdf-to-docx' ||
+    toolType === 'pdf-to-xlsx' ||
+    toolType === 'pdf-to-pptx' ||
+    toolType === 'pdf-to-txt' ||
+    toolType === 'compress-pdf' ||
     toolType === 'pdf-to-jpg' ||
     toolType === 'pdf-to-png' ||
     toolType === 'pdf-to-webp' ||
